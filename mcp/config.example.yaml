@@ -1,0 +1,15 @@
+database:
+  path: "/path/to/simulation.db"
+  pool_size: 5
+  query_timeout: 30
+  read_only: true
+
+cache:
+  enabled: true
+  max_size: 100
+  ttl_seconds: 300
+
+server:
+  max_result_size: 10000
+  default_limit: 100
+  log_level: "INFO"
