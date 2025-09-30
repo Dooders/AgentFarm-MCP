@@ -190,6 +190,9 @@ class ConnectionError(DatabaseError):
         self.database_type = database_type
         if database_type:
             message = f"Database connection failed ({database_type}): {message}"
+        details = details or {}
+        if database_type:
+            details["database_type"] = database_type
         super().__init__(message, details)
 
 
@@ -211,6 +214,7 @@ class QueryExecutionError(DatabaseError):
         if query:
             details = details or {}
             details["query"] = query
+            message = f"{message} (Query: {query})"
         super().__init__(message, details)
 
 
@@ -234,6 +238,7 @@ class PermissionError(MCPException):
         if operation:
             details = details or {}
             details["operation"] = operation
+            message = f"{message} (Operation: {operation})"
         super().__init__(message, details)
 
 
@@ -264,4 +269,5 @@ class ResourceLimitError(MCPException):
             details = details or {}
             details["limit_type"] = limit_type
             details["limit_value"] = limit_value
+            message = f"{message} (Limit: {limit_type}={limit_value})"
         super().__init__(message, details)

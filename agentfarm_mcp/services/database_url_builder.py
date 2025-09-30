@@ -45,7 +45,8 @@ class SQLiteURLBuilder(DatabaseURLBuilder):
             # Use SQLite URI format to enforce read-only mode
             return f"sqlite:///file:{config.path}?mode=ro&uri=true"
         else:
-            return f"sqlite:///{config.path}"
+            # For read-write mode, use URI format with mode=rw
+            return f"sqlite:///file:{config.path}?mode=rw&uri=true"
 
     def get_connect_args(self, config: DatabaseConfig) -> Dict[str, Any]:
         """Get SQLite connection arguments."""
@@ -65,6 +66,10 @@ class PostgreSQLURLBuilder(DatabaseURLBuilder):
 
     def build_url(self, config: DatabaseConfig) -> str:
         """Build PostgreSQL database URL."""
+        # If path is a connection string, return it as-is
+        if config.path.startswith(('postgresql://', 'postgres://')):
+            return config.path
+        
         # For PostgreSQL, we expect additional config fields
         host = getattr(config, 'host', 'localhost')
         port = getattr(config, 'port', 5432)
@@ -74,6 +79,8 @@ class PostgreSQLURLBuilder(DatabaseURLBuilder):
         
         if username and password:
             return f"postgresql://{quote_plus(username)}:{quote_plus(password)}@{host}:{port}/{database}"
+        elif username:
+            return f"postgresql://{quote_plus(username)}@{host}:{port}/{database}"
         else:
             return f"postgresql://{host}:{port}/{database}"
 
@@ -149,7 +156,11 @@ def detect_database_type(config: DatabaseConfig) -> str:
     """
     # Check if path looks like a connection string
     if config.path.startswith(('postgresql://', 'postgres://', 'mysql://', 'sqlite://')):
-        return config.path.split('://')[0]
+        db_type = config.path.split('://')[0]
+        # Normalize 'postgres' to 'postgresql'
+        if db_type == 'postgres':
+            return 'postgresql'
+        return db_type
     
     # Check for database type attribute
     if hasattr(config, 'database_type'):

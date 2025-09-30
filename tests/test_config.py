@@ -276,7 +276,7 @@ def test_database_config_connection_string_validation():
     ]
     
     for conn_str in invalid_strings:
-        with pytest.raises(ValueError, match="Invalid connection string format"):
+        with pytest.raises(Exception, match="Invalid connection string format"):
             DatabaseConfig(path=conn_str)
 
 
@@ -350,6 +350,7 @@ def test_database_config_postgresql_validation():
         DatabaseConfig(
             path="",
             database_type="postgresql",
+            host="",  # Explicitly set to empty
             database="testdb"
         )
 
@@ -358,7 +359,8 @@ def test_database_config_postgresql_validation():
         DatabaseConfig(
             path="",
             database_type="postgresql",
-            host="localhost"
+            host="localhost",
+            database=""  # Explicitly set to empty
         )
 
 

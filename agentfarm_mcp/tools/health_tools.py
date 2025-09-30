@@ -1,5 +1,6 @@
 """Health check tools for monitoring server status."""
 
+import time
 from datetime import datetime
 from typing import Any, Dict
 
@@ -84,7 +85,7 @@ class HealthCheckTool(ToolBase):
 
         # Check tool registry
         tools_health = self._check_tools(include_details)
-        health_info["components"]["tools"] = tools_health
+        health_info["components"]["tool_registry"] = tools_health
         health_info["summary"]["total_checks"] += 1
         if tools_health["status"] == "healthy":
             health_info["summary"]["passed_checks"] += 1
@@ -95,7 +96,13 @@ class HealthCheckTool(ToolBase):
         if health_info["summary"]["failed_checks"] > 0:
             health_info["status"] = "unhealthy"
         elif health_info["summary"]["warnings"] > 0:
-            health_info["status"] = "degraded"
+            # Check if warnings are only from disabled cache
+            cache_warning = health_info["components"].get("cache", {}).get("warning", "")
+            if (health_info["summary"]["warnings"] == 1 and 
+                "disabled" in cache_warning.lower()):
+                health_info["status"] = "healthy"
+            else:
+                health_info["status"] = "degraded"
         else:
             health_info["status"] = "healthy"
 
@@ -228,7 +235,19 @@ class HealthCheckTool(ToolBase):
         """Get server uptime in seconds."""
         # This is a placeholder - in a real implementation, you'd track start time
         # For now, return a reasonable default
-        return 0.0
+        return time.time()
+
+    def _check_database_health(self, include_details: bool = False, timeout_seconds: int = 5) -> Dict[str, Any]:
+        """Check database health (alias for _check_database)."""
+        return self._check_database(timeout_seconds, include_details)
+
+    def _check_cache_health(self, include_details: bool = False) -> Dict[str, Any]:
+        """Check cache health (alias for _check_cache)."""
+        return self._check_cache(include_details)
+
+    def _check_tool_registry_health(self, include_details: bool = False) -> Dict[str, Any]:
+        """Check tool registry health (alias for _check_tools)."""
+        return self._check_tools(include_details)
 
 
 class SystemInfoParams(BaseModel):

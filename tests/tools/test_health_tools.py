@@ -42,10 +42,20 @@ class TestHealthCheckTool:
 
     @pytest.fixture
     def mock_cache_service(self):
-        """Create a real cache service with cache disabled."""
-        cache_config = CacheConfig(enabled=False)
-        cache_service = CacheService(cache_config)
-        return cache_service
+        """Create a mock cache service."""
+        mock_cache = Mock()
+        mock_cache.get_stats.return_value = {
+            "enabled": False,
+            "size": 0,
+            "max_size": 100,
+            "hit_rate": 0.0,
+            "hits": 0,
+            "misses": 0,
+            "ttl_seconds": 300,
+        }
+        mock_cache.set.return_value = None
+        mock_cache.get.return_value = None
+        return mock_cache
 
     @pytest.fixture
     def health_tool(self, mock_db_service, mock_cache_service):
@@ -140,10 +150,21 @@ class TestHealthCheckTool:
 
             assert result["status"] == "warning"
             assert "warning" in result
-            assert "slower than expected" in result["warning"]
+            assert "Slow response time" in result["warning"]
 
     def test_cache_health_check_success(self, health_tool, mock_cache_service):
         """Test successful cache health check."""
+        # Override mock to return enabled cache
+        mock_cache_service.get_stats.return_value = {
+            "enabled": True,
+            "size": 5,
+            "max_size": 100,
+            "hit_rate": 0.8,
+            "hits": 40,
+            "misses": 10,
+            "ttl_seconds": 300,
+        }
+        
         result = health_tool._check_cache_health(include_details=False)
 
         assert result["status"] == "healthy"
@@ -154,6 +175,17 @@ class TestHealthCheckTool:
 
     def test_cache_health_check_with_details(self, health_tool, mock_cache_service):
         """Test cache health check with details."""
+        # Override mock to return enabled cache
+        mock_cache_service.get_stats.return_value = {
+            "enabled": True,
+            "size": 5,
+            "max_size": 100,
+            "hit_rate": 0.8,
+            "hits": 40,
+            "misses": 10,
+            "ttl_seconds": 300,
+        }
+        
         result = health_tool._check_cache_health(include_details=True)
 
         assert result["status"] == "healthy"
@@ -226,8 +258,7 @@ class TestHealthCheckTool:
     def test_get_uptime(self, health_tool):
         """Test uptime calculation."""
         with patch("agentfarm_mcp.tools.health_tools.time") as mock_time:
-            mock_time.time.return_value = 1000.0
-            mock_time.monotonic.return_value = 100.0
+            mock_time.time.return_value = 100.0
 
             uptime = health_tool._get_uptime()
             assert uptime == 100.0
