@@ -15,7 +15,7 @@ A **read-only** Model Context Protocol (MCP) server that enables LLM agents (lik
 
 ### Key Features
 
-- **~20 specialized tools** for simulation analysis
+- **25 specialized tools** for simulation analysis
 - **Zero database modification risk** (read-only enforcement)
 - **Smart caching** for performance
 - **Comprehensive error handling**
@@ -105,7 +105,7 @@ Advanced analytics and insights
 | `analyze_social_patterns` | Social interaction patterns |
 | `analyze_reproduction` | Reproduction success rates |
 
-### 4. Comparison Tools (3 tools)
+### 4. Comparison Tools (4 tools)
 Multi-simulation analysis
 
 | Tool | Purpose |
@@ -114,7 +114,7 @@ Multi-simulation analysis
 | `compare_parameters` | Parameter impact analysis |
 | `rank_configurations` | Performance ranking |
 
-### 5. Advanced Tools (3 tools)
+### 5. Advanced Tools (2 tools)
 Specialized analysis
 
 | Tool | Purpose |
@@ -123,7 +123,15 @@ Specialized analysis
 | `analyze_spatial_distribution` | Spatial statistics |
 | `get_agent_lifecycle` | Complete agent history |
 
-**Total: 23 tools** (start with 5-10, expand later)
+### 6. Health & Monitoring Tools (2 tools)
+Server health and system monitoring
+
+| Tool | Purpose |
+|------|---------|
+| `health_check` | Comprehensive server health monitoring |
+| `system_info` | System information and performance metrics |
+
+**Total: 25 tools** (including health & monitoring tools)
 
 ## 🏗️ Architecture Components
 
@@ -322,7 +330,7 @@ All tools return structured responses:
 
 ### Phase 3: Analysis (Week 3)
 - ✅ Analysis tools (7)
-- ✅ Comparison tools (3)
+- ✅ Comparison tools (4)
 - ✅ Advanced formatters
 
 ### Phase 4: Polish (Week 4)

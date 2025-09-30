@@ -27,7 +27,7 @@ pip install -e .
 ### Verify Installation
 
 ```bash
-# Should show 23 tools
+# Should show 25 tools
 python3 -m mcp --db-path /workspace/simulation.db --list-tools
 ```
 

@@ -1,6 +1,6 @@
 # MCP Server - API Reference
 
-Complete API documentation for all 23 tools.
+Complete API documentation for all 25 tools.
 
 ---
 
@@ -11,6 +11,7 @@ Complete API documentation for all 23 tools.
 - [Analysis Tools](#analysis-tools) (7)
 - [Comparison Tools](#comparison-tools) (4)
 - [Advanced Tools](#advanced-tools) (2)
+- [Health & Monitoring Tools](#health--monitoring-tools) (2)
 - [Response Format](#response-format)
 - [Error Handling](#error-handling)
 
@@ -466,6 +467,117 @@ Get complete agent lifecycle data.
 
 ---
 
+## Health & Monitoring Tools
+
+### 24. `health_check`
+
+Perform comprehensive health check of the MCP server.
+
+**Parameters:**
+- `include_details` (boolean, default=false): Include detailed component information
+- `timeout_seconds` (integer, default=5, range=1-30): Timeout for health checks
+
+**Returns:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-09-30T...",
+  "version": "0.1.0",
+  "uptime_seconds": 1234.5,
+  "components": {
+    "database": {
+      "status": "healthy",
+      "response_time_ms": 2.1,
+      "connection_pool": "active"
+    },
+    "cache": {
+      "status": "healthy",
+      "size": 45,
+      "hit_rate": 0.85
+    },
+    "tool_registry": {
+      "status": "healthy",
+      "registered_tools": 25
+    }
+  },
+  "summary": {
+    "total_checks": 3,
+    "passed_checks": 3,
+    "failed_checks": 0,
+    "warnings": 0
+  }
+}
+```
+
+**Example:**
+```python
+tool = server.get_tool("health_check")
+result = tool(include_details=True, timeout_seconds=10)
+```
+
+### 25. `system_info`
+
+Get system information and performance metrics.
+
+**Parameters:**
+- `include_performance` (boolean, default=false): Include performance metrics
+
+**Returns:**
+```json
+{
+  "timestamp": "2025-09-30T...",
+  "server": {
+    "version": "0.1.0",
+    "python_version": "3.11.5",
+    "platform": {
+      "system": "Windows",
+      "release": "10",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 142 Stepping 10, GenuineIntel"
+    }
+  },
+  "database": {
+    "type": "sqlite",
+    "path": "/path/to/simulation.db",
+    "pool_size": 5,
+    "query_timeout": 30,
+    "read_only": true
+  },
+  "cache": {
+    "enabled": true,
+    "size": 45,
+    "max_size": 100,
+    "hit_rate": 0.85,
+    "hits": 127,
+    "misses": 22
+  },
+  "performance": {
+    "memory": {
+      "rss_mb": 45.2,
+      "vms_mb": 123.4,
+      "percent": 2.1
+    },
+    "cpu": {
+      "percent": 1.5,
+      "num_threads": 8
+    },
+    "system": {
+      "cpu_count": 8,
+      "memory_total_gb": 16.0,
+      "memory_available_gb": 12.5
+    }
+  }
+}
+```
+
+**Example:**
+```python
+tool = server.get_tool("system_info")
+result = tool(include_performance=True)
+```
+
+---
+
 ## Response Format
 
 All tools return a standardized response:
@@ -899,7 +1011,7 @@ tool(simulation_id="sim_001", limit=100, offset=100)
 
 See working examples in:
 - `test_server.py` - Basic usage
-- `demo_all_tools.py` - All 23 tools
+- `demo_all_tools.py` - All 25 tools
 - `test_query_tools.py` - Query examples
 - `test_analysis_tools.py` - Analysis examples
 - `test_comparison_tools.py` - Comparison examples
@@ -913,6 +1025,6 @@ See working examples in:
 - [FINAL_VERIFICATION.md](FINAL_VERIFICATION.md) - Project status
 
 **Version:** 0.1.0  
-**Tools:** 23  
+**Tools:** 25  
 **Tests:** 234 (91% coverage)  
 **Status:** Production Ready ✅

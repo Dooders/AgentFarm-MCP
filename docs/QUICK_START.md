@@ -21,12 +21,33 @@ You should see:
 ```text
 Available Tools:
 ============================================================
+analyze_agent_performance
+analyze_population_dynamics
+analyze_reproduction
+analyze_resource_efficiency
+analyze_social_patterns
+analyze_survival_rates
+build_agent_lineage
+compare_generations
+compare_parameters
+compare_simulations
+get_agent_lifecycle
 get_experiment_info
 get_simulation_info
+get_simulation_metrics
+health_check
+identify_critical_events
 list_experiments
 list_simulations
+query_actions
+query_agents
+query_interactions
+query_resources
+query_states
+rank_configurations
+system_info
 ============================================================
-Total: 4 tools
+Total: 25 tools
 ```
 
 ## Run Test Script
@@ -42,7 +63,7 @@ You should see:
 Testing MCP Server...
 ============================================================
 1. Initializing server...
-   ✓ Server initialized with 4 tools
+   ✓ Server initialized with 25 tools
 ...
 ============================================================
 All tests completed!
