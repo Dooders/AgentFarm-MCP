@@ -7,7 +7,7 @@ from mcp_server import MCPConfig, SimulationMCPServer
 def main():
     print("="*80)
     print("  MCP SERVER - COMPLETE TOOL DEMONSTRATION")
-    print("  Phases 1, 2, and 3 - All 17 Tools")
+    print("  Phases 1, 2, 3, and 4 - All 21 Tools")
     print("="*80)
     
     # Initialize
@@ -110,6 +110,35 @@ def main():
         
         print(f"{status} {tool_name:30s} {time_ms:6.2f}ms  {key_metric}")
     
+    # Test Phase 4: Comparison Tools
+    print("\n" + "="*80)
+    print("PHASE 4: COMPARISON TOOLS (4 tools)")
+    print("="*80)
+    
+    tools = [
+        ("rank_configurations", {"metric_name": "total_agents", "aggregation": "mean", "limit": 5}),
+        ("compare_generations", {"simulation_id": sim_id, "max_generations": 5}),
+    ]
+    
+    for tool_name, params in tools:
+        tool = server.get_tool(tool_name)
+        result = tool(**params)
+        status = "✓" if result['success'] else "✗"
+        time_ms = result['metadata'].get('execution_time_ms', 0)
+        
+        key_metric = ""
+        if result['success']:
+            if 'total_ranked' in result['data']:
+                key_metric = f"{result['data']['total_ranked']} ranked"
+            elif 'total_generations' in result['data']:
+                key_metric = f"{result['data']['total_generations']} generations"
+        
+        print(f"{status} {tool_name:30s} {time_ms:6.2f}ms  {key_metric}")
+    
+    # Note for multi-sim tools
+    print(f"\n  Note: compare_simulations and compare_parameters require 2+ simulations")
+    print(f"        (Current database has 1 simulation)")
+    
     print("\n" + "="*80)
     print("SUMMARY")
     print("="*80)
@@ -126,6 +155,7 @@ def main():
     print(f"   Metadata tools: 4")
     print(f"   Query tools: 6")
     print(f"   Analysis tools: 7")
+    print(f"   Comparison tools: 4")
     
     print(f"\n✅ Status: All {len(server.list_tools())} tools operational")
     print(f"⚡ Performance: Average <30ms per operation")

@@ -32,6 +32,12 @@ from mcp_server.tools.analysis_tools import (
     AnalyzeSurvivalRatesTool,
     IdentifyCriticalEventsTool,
 )
+from mcp_server.tools.comparison_tools import (
+    CompareGenerationsTool,
+    CompareParametersTool,
+    CompareSimulationsTool,
+    RankConfigurationsTool,
+)
 from mcp_server.utils.exceptions import ToolNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -87,6 +93,11 @@ class SimulationMCPServer:
             IdentifyCriticalEventsTool,
             AnalyzeSocialPatternsTool,
             AnalyzeReproductionTool,
+            # Comparison tools
+            CompareSimulationsTool,
+            CompareParametersTool,
+            RankConfigurationsTool,
+            CompareGenerationsTool,
         ]
 
         # Instantiate and register each tool
