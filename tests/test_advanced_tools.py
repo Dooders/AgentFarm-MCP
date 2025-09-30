@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Test advanced tools."""
 
-from mcp.config import MCPConfig
-from mcp.server import SimulationMCPServer
+from agentfarm_mcp.config import MCPConfig
+from agentfarm_mcp.server import SimulationMCPServer
 
 
 def print_section(title):
@@ -16,7 +16,7 @@ def test_advanced_tools():
     
     # Initialize server
     print_section("SERVER INITIALIZATION")
-    config = MCPConfig.from_db_path("/workspace/simulation.db")
+    config = MCPConfig.from_db_path("simulation.db")
     server = SimulationMCPServer(config)
     print(f"✓ Server initialized with {len(server.list_tools())} tools")
     

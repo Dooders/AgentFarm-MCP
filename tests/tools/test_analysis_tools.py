@@ -2,7 +2,7 @@
 
 import pytest
 
-from mcp.tools.analysis_tools import (
+from agentfarm_mcp.tools.analysis_tools import (
     AnalyzeAgentPerformanceTool,
     AnalyzePopulationDynamicsTool,
     AnalyzeReproductionTool,

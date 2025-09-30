@@ -5,8 +5,8 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from mcp.config import CacheConfig, DatabaseConfig, MCPConfig, ServerConfig
-from mcp.models.database_models import (
+from agentfarm_mcp.config import CacheConfig, DatabaseConfig, MCPConfig, ServerConfig
+from agentfarm_mcp.models.database_models import (
     ActionModel,
     AgentModel,
     AgentStateModel,
@@ -19,8 +19,8 @@ from mcp.models.database_models import (
     SocialInteractionModel,
     InteractionModel,
 )
-from mcp.services.cache_service import CacheService
-from mcp.services.database_service import DatabaseService
+from agentfarm_mcp.services.cache_service import CacheService
+from agentfarm_mcp.services.database_service import DatabaseService
 
 
 @pytest.fixture(scope="session")

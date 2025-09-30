@@ -2,8 +2,8 @@
 """Simple test script to verify the MCP server works."""
 
 import sys
-from mcp.config import MCPConfig
-from mcp.server import SimulationMCPServer
+from agentfarm_mcp.config import MCPConfig
+from agentfarm_mcp.server import SimulationMCPServer
 
 def test_server():
     """Test the MCP server with basic operations."""
@@ -12,7 +12,7 @@ def test_server():
     
     # Initialize server
     print("\n1. Initializing server...")
-    config = MCPConfig.from_db_path("/workspace/simulation.db")
+    config = MCPConfig.from_db_path("simulation.db")
     server = SimulationMCPServer(config)
     print(f"   ✓ Server initialized with {len(server.list_tools())} tools")
     

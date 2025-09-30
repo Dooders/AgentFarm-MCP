@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from mcp.config import CacheConfig, DatabaseConfig, MCPConfig, ServerConfig
+from agentfarm_mcp.config import CacheConfig, DatabaseConfig, MCPConfig, ServerConfig
 
 
 def test_database_config_valid(test_db_with_data):
@@ -134,9 +134,11 @@ def test_mcp_config_from_db_path_with_overrides(test_db_with_data):
 
 def test_mcp_config_from_yaml(tmp_path, test_db_with_data):
     """Test loading config from YAML file."""
+    # Convert Windows path to forward slashes for YAML compatibility
+    db_path = str(test_db_with_data).replace("\\", "/")
     yaml_content = f"""
 database:
-  path: "{test_db_with_data}"
+  path: "{db_path}"
   pool_size: 3
   query_timeout: 20
   read_only: true

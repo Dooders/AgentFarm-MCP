@@ -2,7 +2,7 @@
 
 import pytest
 
-from mcp.tools.comparison_tools import (
+from agentfarm_mcp.tools.comparison_tools import (
     CompareGenerationsTool,
     CompareParametersTool,
     CompareSimulationsTool,

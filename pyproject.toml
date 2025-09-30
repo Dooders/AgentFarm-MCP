@@ -32,18 +32,19 @@ dev = [
 ]
 
 [project.scripts]
-mcp-server = "mcp.cli:main"
+mcp-server = "agentfarm_mcp.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["mcp*"]
+include = ["agentfarm_mcp*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=mcp --cov-report=html --cov-report=term"
+addopts = "-v --cov=agentfarm_mcp --cov-report=html --cov-report=term"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.black]
 line-length = 100

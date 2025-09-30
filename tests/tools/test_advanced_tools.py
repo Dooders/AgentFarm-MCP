@@ -2,7 +2,7 @@
 
 import pytest
 
-from mcp.tools.advanced_tools import BuildAgentLineageTool, GetAgentLifecycleTool
+from agentfarm_mcp.tools.advanced_tools import BuildAgentLineageTool, GetAgentLifecycleTool
 
 
 @pytest.fixture

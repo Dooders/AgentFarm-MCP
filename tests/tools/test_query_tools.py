@@ -2,7 +2,7 @@
 
 import pytest
 
-from mcp.tools.query_tools import (
+from agentfarm_mcp.tools.query_tools import (
     GetSimulationMetricsTool,
     QueryActionsTool,
     QueryAgentsTool,

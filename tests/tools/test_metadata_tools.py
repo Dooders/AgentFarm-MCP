@@ -2,13 +2,13 @@
 
 import pytest
 
-from mcp.tools.metadata_tools import (
+from agentfarm_mcp.tools.metadata_tools import (
     GetExperimentInfoTool,
     GetSimulationInfoTool,
     ListExperimentsTool,
     ListSimulationsTool,
 )
-from mcp.utils.exceptions import ExperimentNotFoundError, SimulationNotFoundError
+from agentfarm_mcp.utils.exceptions import ExperimentNotFoundError, SimulationNotFoundError
 
 
 @pytest.fixture

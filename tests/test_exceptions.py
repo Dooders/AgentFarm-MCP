@@ -2,7 +2,7 @@
 
 import pytest
 
-from mcp.utils.exceptions import (
+from agentfarm_mcp.utils.exceptions import (
     CacheError,
     ConfigurationError,
     DatabaseError,
