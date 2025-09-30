@@ -60,20 +60,20 @@ python3 -m pytest tests/ --cov=mcp_server --cov-report=html
 
 ## 📚 Documentation
 
-### Getting Started
-- **[QUICK_START.md](QUICK_START.md)** - 5-minute getting started guide
-- **[FINAL_VERIFICATION.md](FINAL_VERIFICATION.md)** - Project completion status
+### 🚀 Essential Docs (Start Here)
+- **[QUICK_START.md](QUICK_START.md)** - Get running in 5 minutes
+- **[USER_GUIDE.md](USER_GUIDE.md)** - Practical usage guide
+- **[API_REFERENCE.md](API_REFERENCE.md)** - Complete API documentation
+- **[TOOL_CATALOG.md](TOOL_CATALOG.md)** - Quick tool reference
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Problem solving
 
-### Implementation Details
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Phase 1: Foundation
-- **[PHASE2_SUMMARY.md](PHASE2_SUMMARY.md)** - Phase 2: Query Tools
-- **[PHASE3_SUMMARY.md](PHASE3_SUMMARY.md)** - Phase 3: Analysis Tools
-- **[PHASE4_SUMMARY.md](PHASE4_SUMMARY.md)** - Phase 4: Comparison Tools
-
-### Verification & Testing
-- **[REQUIREMENTS_VERIFICATION.md](REQUIREMENTS_VERIFICATION.md)** - Detailed compliance check
-- **[FINAL_TEST_REPORT.md](FINAL_TEST_REPORT.md)** - Test results (234 tests, 91% coverage)
+### 📊 Status & Verification
 - **[STATUS.md](STATUS.md)** - Current capabilities
+- **[FINAL_VERIFICATION.md](FINAL_VERIFICATION.md)** - Requirements compliance
+- **[FINAL_TEST_REPORT.md](FINAL_TEST_REPORT.md)** - Test results (234 tests, 91% coverage)
+
+### 📖 Complete Index
+- **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** - Complete documentation guide
 
 ## 🛠️ Available Tools (23)
 
