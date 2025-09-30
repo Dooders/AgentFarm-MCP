@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
 from ..config import DatabaseConfig
-from ..models.database_models import Base, Simulation
+from ..models.database_models import Simulation
 from ..utils.exceptions import DatabaseError, QueryTimeoutError, SimulationNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -73,13 +73,14 @@ class DatabaseService:
             self._SessionFactory = sessionmaker(bind=self._engine, expire_on_commit=False)
 
             logger.info(
-                f"Database service initialized: {self.config.path} "
-                f"(read_only={self.config.read_only})"
+                "Database service initialized: %s (read_only=%s)",
+                self.config.path,
+                self.config.read_only,
             )
 
-        except Exception as e:
-            logger.error(f"Failed to initialize database: {e}")
-            raise DatabaseError(f"Database initialization failed: {e}")
+        except Exception as exc:
+            logger.error("Failed to initialize database: %s", exc)
+            raise DatabaseError(f"Database initialization failed: {exc}") from exc
 
     @contextmanager
     def get_session(self) -> Session:
@@ -101,21 +102,18 @@ class DatabaseService:
             # Read-only mode, no commit needed
             if not self.config.read_only:
                 session.commit()
-        except Exception as e:
+        except Exception as exc:
             session.rollback()
-            logger.error(f"Database session error: {e}")
-            raise DatabaseError(f"Query execution failed: {e}")
+            logger.error("Database session error: %s", exc)
+            raise DatabaseError(f"Query execution failed: {exc}") from exc
         finally:
             session.close()
 
-    def execute_query(
-        self, query_func: Callable[[Session], Any], timeout: Optional[int] = None
-    ) -> Any:
+    def execute_query(self, query_func: Callable[[Session], Any]) -> Any:
         """Execute a query function with error handling.
 
         Args:
             query_func: Function that takes a session and returns results
-            timeout: Optional query timeout override
 
         Returns:
             Query results
@@ -129,9 +127,6 @@ class DatabaseService:
             ...     return session.query(AgentModel).count()
             >>> count = db_service.execute_query(my_query)
         """
-        # Use provided timeout or default from config
-        query_timeout = timeout or self.config.query_timeout
-
         with self.get_session() as session:
             try:
                 # Note: SQLite doesn't support statement-level timeouts natively
@@ -141,9 +136,9 @@ class DatabaseService:
 
             except QueryTimeoutError:
                 raise
-            except Exception as e:
-                logger.error(f"Query execution error: {e}")
-                raise DatabaseError(f"Query failed: {e}")
+            except Exception as exc:
+                logger.error("Query execution error: %s", exc)
+                raise DatabaseError(f"Query failed: {exc}") from exc
 
     def validate_simulation_exists(self, simulation_id: str) -> bool:
         """Check if simulation exists in database.
@@ -161,10 +156,7 @@ class DatabaseService:
 
         def check_exists(session: Session) -> bool:
             return (
-                session.query(Simulation)
-                .filter_by(simulation_id=simulation_id)
-                .first()
-                is not None
+                session.query(Simulation).filter_by(simulation_id=simulation_id).first() is not None
             )
 
         try:

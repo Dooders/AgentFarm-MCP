@@ -1,10 +1,11 @@
 """Unit tests for database service."""
 
 import pytest
+
 from agentfarm_mcp.config import DatabaseConfig
 from agentfarm_mcp.models.database_models import AgentModel, Simulation
 from agentfarm_mcp.services.database_service import DatabaseService
-from agentfarm_mcp.utils.exceptions import DatabaseError, SimulationNotFoundError
+from agentfarm_mcp.utils.exceptions import DatabaseError
 
 
 def test_database_service_initialization(db_config):
@@ -120,9 +121,7 @@ def test_database_service_query_agents(db_service, test_simulation_id):
 
     def get_agents(session):
         return (
-            session.query(AgentModel)
-            .filter(AgentModel.simulation_id == test_simulation_id)
-            .all()
+            session.query(AgentModel).filter(AgentModel.simulation_id == test_simulation_id).all()
         )
 
     agents = db_service.execute_query(get_agents)

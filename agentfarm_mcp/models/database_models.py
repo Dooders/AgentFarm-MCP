@@ -37,11 +37,8 @@ from sqlalchemy import (
     Integer,
     PrimaryKeyConstraint,
     String,
-    func,
-    text,
 )
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import declarative_base, relationship
 
 logger = logging.getLogger(__name__)
 
@@ -126,9 +123,7 @@ class AgentModel(Base):
         primaryjoin="AgentModel.agent_id==ActionModel.agent_id",
     )
     health_incidents = relationship("HealthIncident", back_populates="agent")
-    learning_experiences = relationship(
-        "LearningExperienceModel", back_populates="agent"
-    )
+    learning_experiences = relationship("LearningExperienceModel", back_populates="agent")
     targeted_actions = relationship(
         "ActionModel",
         foreign_keys="[ActionModel.action_target_id]",
@@ -220,18 +215,16 @@ class AgentStateModel(Base):
             else:
                 kwargs["id"] = f"{kwargs['agent_id']}-{kwargs['step_number']}"
         elif "id" not in kwargs:
-            raise ValueError(
-                "Both agent_id and step_number are required to create AgentStateModel"
-            )
+            raise ValueError("Both agent_id and step_number are required to create AgentStateModel")
         super().__init__(**kwargs)
 
     @staticmethod
-    def generate_id(agent_id: str, step_number: int) -> str:
+    def generate_id(agent_id: str, step_number: int, simulation_id: str = None) -> str:
         """Generate a unique ID for an agent state."""
-        # Centralize via Identity for consistency without instantiation
-        from farm.utils.identity import Identity
-
-        return str(Identity.agent_state_id(agent_id, step_number))
+        if simulation_id:
+            return f"{simulation_id}:{agent_id}-{step_number}"
+        else:
+            return f"{agent_id}-{step_number}"
 
     def as_dict(self) -> Dict[str, Any]:
         """Convert agent state to dictionary."""
@@ -335,9 +328,7 @@ class InteractionModel(Base):
     )  # e.g., 'share', 'attack', 'gather', 'reproduce'
     action_type = Column(String(50), nullable=True)
     details = Column(JSON, nullable=True)
-    timestamp = Column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
-    )
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class SimulationStepModel(Base):
@@ -528,9 +519,7 @@ class ActionModel(Base):
     reward = Column(Float(precision=6), nullable=True)
     details = Column(String(1024), nullable=True)
 
-    agent = relationship(
-        "AgentModel", back_populates="actions", foreign_keys=[agent_id]
-    )
+    agent = relationship("AgentModel", back_populates="actions", foreign_keys=[agent_id])
     state_before = relationship("AgentStateModel", foreign_keys=[state_before_id])
     state_after = relationship("AgentStateModel", foreign_keys=[state_after_id])
 
@@ -658,9 +647,7 @@ class Simulation(Base):
     __tablename__ = "simulations"
 
     simulation_id = Column(String(64), primary_key=True)
-    experiment_id = Column(
-        String(64), ForeignKey("experiments.experiment_id"), nullable=True
-    )
+    experiment_id = Column(String(64), ForeignKey("experiments.experiment_id"), nullable=True)
     start_time = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     end_time = Column(DateTime, nullable=True)
     status = Column(String(50), default="pending")
@@ -742,17 +729,11 @@ class ReproductionEventModel(Base):
     offspring_generation = Column(Integer, nullable=True)
     parent_position_x = Column(Float, nullable=False)
     parent_position_y = Column(Float, nullable=False)
-    timestamp = Column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
-    )
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
-    parent = relationship(
-        "AgentModel", foreign_keys=[parent_id], backref="reproduction_attempts"
-    )
-    offspring = relationship(
-        "AgentModel", foreign_keys=[offspring_id], backref="creation_event"
-    )
+    parent = relationship("AgentModel", foreign_keys=[parent_id], backref="reproduction_attempts")
+    offspring = relationship("AgentModel", foreign_keys=[offspring_id], backref="creation_event")
 
     def as_dict(self) -> Dict[str, Any]:
         """Convert reproduction event to dictionary format."""
@@ -846,9 +827,7 @@ class SocialInteractionModel(Base):
     recipient_resources_after = Column(Float(precision=6), nullable=True)
     group_id = Column(String(64), nullable=True)
     details = Column(JSON, nullable=True)
-    timestamp = Column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
-    )
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     initiator = relationship(
@@ -951,9 +930,7 @@ class SimulationComparison:
 
     def _compare_results(self) -> Dict:
         """Compare results summaries using DeepDiff."""
-        return DeepDiff(
-            self.sim1.results_summary, self.sim2.results_summary, ignore_order=True
-        )
+        return DeepDiff(self.sim1.results_summary, self.sim2.results_summary, ignore_order=True)
 
     def _compare_step_metrics(self, session) -> Dict[str, Dict[str, float]]:
         """Compare statistical summaries of step metrics.
@@ -989,10 +966,7 @@ class SimulationComparison:
             setattr(
                 self,
                 metric_list,
-                {
-                    metric: [getattr(step, metric) for step in steps]
-                    for metric in metrics
-                },
+                {metric: [getattr(step, metric) for step in steps] for metric in metrics},
             )
 
         # Compare statistics for each metric
@@ -1002,12 +976,10 @@ class SimulationComparison:
 
             if sim1_values and sim2_values:  # Only compare if both have data
                 differences[metric] = {
-                    "mean_diff": statistics.mean(sim1_values)
-                    - statistics.mean(sim2_values),
+                    "mean_diff": statistics.mean(sim1_values) - statistics.mean(sim2_values),
                     "max_diff": max(sim1_values) - max(sim2_values),
                     "min_diff": min(sim1_values) - min(sim2_values),
-                    "std_diff": statistics.stdev(sim1_values)
-                    - statistics.stdev(sim2_values),
+                    "std_diff": statistics.stdev(sim1_values) - statistics.stdev(sim2_values),
                 }
 
         return differences

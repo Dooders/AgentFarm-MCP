@@ -28,16 +28,12 @@ class DatabaseError(MCPException):
     query errors, or transaction failures.
     """
 
-    pass
-
 
 class ValidationError(MCPException):
     """Parameter validation errors.
 
     Raised when input parameters fail validation checks.
     """
-
-    pass
 
 
 class QueryTimeoutError(DatabaseError):
@@ -124,8 +120,6 @@ class CacheError(MCPException):
     Raised when cache operations fail.
     """
 
-    pass
-
 
 class ToolNotFoundError(MCPException):
     """Requested tool does not exist.
@@ -150,5 +144,3 @@ class ConfigurationError(MCPException):
 
     Raised when configuration is invalid or missing required values.
     """
-
-    pass
