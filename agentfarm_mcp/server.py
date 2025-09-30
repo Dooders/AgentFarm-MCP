@@ -2,9 +2,10 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional
 
 from fastmcp import FastMCP
+
 from .config import MCPConfig
 from .services.cache_service import CacheService
 from .services.database_service import DatabaseService
@@ -25,6 +26,7 @@ from .tools.comparison_tools import (
     CompareSimulationsTool,
     RankConfigurationsTool,
 )
+from .tools.health_tools import HealthCheckTool, SystemInfoTool
 from .tools.metadata_tools import (
     GetExperimentInfoTool,
     GetSimulationInfoTool,
@@ -39,20 +41,9 @@ from .tools.query_tools import (
     QueryResourcesTool,
     QueryStatesTool,
 )
-from .tools.health_tools import HealthCheckTool, SystemInfoTool
 from .utils.exceptions import ToolNotFoundError
 
 logger = logging.getLogger(__name__)
-
-
-class ToolProtocol(Protocol):
-    """Protocol for tool objects to ensure type safety."""
-
-    name: str
-    description: str
-    parameters_schema: type
-
-    def __call__(self, **params) -> Dict[str, Any]: ...
 
 
 class SimulationMCPServer:
@@ -134,20 +125,62 @@ class SimulationMCPServer:
         Args:
             tool: Tool instance to register
         """
+        # Get the parameter schema to create proper function signature
+        schema = tool.parameters_schema
+        schema_fields = schema.model_fields
 
-        # Create a uniquely named function for each tool
-        # This avoids FastMCP warnings about duplicate tool names
-        def make_tool_wrapper(t: ToolProtocol):
-            def wrapper(request: Any) -> Dict[str, Any]:
-                """Execute the tool."""
-                return t(**request.model_dump())
+        # Create a function with specific parameters based on the schema
+        def create_tool_function(tool_instance, fields):
+            # Create function signature dynamically
+            import inspect
+            from typing import get_type_hints
 
-            wrapper.__name__ = t.name
-            wrapper.__doc__ = t.description
-            return wrapper
+            # Build parameter list for the function signature
+            params = []
+            for field_name, field_info in fields.items():
+                # Get the default value
+                default = field_info.default if field_info.default is not ... else None
+                if default is None and field_info.default_factory is not None:
+                    default = field_info.default_factory()
 
-        tool_wrapper = make_tool_wrapper(tool)
-        self.mcp.tool()(tool_wrapper)
+                # Add parameter to signature
+                if default is ...:
+                    # Required parameter
+                    params.append(
+                        inspect.Parameter(field_name, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+                    )
+                else:
+                    # Optional parameter with default
+                    params.append(
+                        inspect.Parameter(
+                            field_name, inspect.Parameter.POSITIONAL_OR_KEYWORD, default=default
+                        )
+                    )
+
+            # Create function signature
+            sig = inspect.Signature(params)
+
+            def tool_func(*args, **kwargs):
+                """Tool function with proper signature."""
+                # Bind arguments to signature
+                bound_args = sig.bind(*args, **kwargs)
+                bound_args.apply_defaults()
+
+                # Call the tool with the bound arguments
+                return tool_instance(**bound_args.arguments)
+
+            # Set the signature on the function
+            tool_func.__signature__ = sig
+            tool_func.__name__ = tool_instance.name
+            tool_func.__doc__ = tool_instance.description
+
+            return tool_func
+
+        # Create the tool function with proper signature
+        tool_func = create_tool_function(tool, schema_fields)
+
+        # Register with FastMCP
+        self.mcp.tool()(tool_func)
 
     def get_tool(self, name: str) -> Optional[ToolBase]:
         """Get tool by name.
