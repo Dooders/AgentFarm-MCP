@@ -15,6 +15,14 @@ from mcp_server.tools.metadata_tools import (
     ListExperimentsTool,
     ListSimulationsTool,
 )
+from mcp_server.tools.query_tools import (
+    GetSimulationMetricsTool,
+    QueryActionsTool,
+    QueryAgentsTool,
+    QueryInteractionsTool,
+    QueryResourcesTool,
+    QueryStatesTool,
+)
 from mcp_server.utils.exceptions import ToolNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -55,6 +63,13 @@ class SimulationMCPServer:
             ListSimulationsTool,
             GetExperimentInfoTool,
             ListExperimentsTool,
+            # Query tools
+            QueryAgentsTool,
+            QueryActionsTool,
+            QueryStatesTool,
+            QueryResourcesTool,
+            QueryInteractionsTool,
+            GetSimulationMetricsTool,
         ]
 
         # Instantiate and register each tool
