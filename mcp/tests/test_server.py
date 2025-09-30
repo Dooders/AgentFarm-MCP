@@ -210,3 +210,32 @@ def test_server_tool_wrapper_names(mcp_config):
     assert len(tool.description) > 0
 
     server.close()
+
+
+def test_server_health_check(mcp_config):
+    """Test server health check endpoint."""
+    server = SimulationMCPServer(mcp_config)
+
+    health = server.health_check()
+
+    assert "status" in health
+    assert "timestamp" in health
+    assert "components" in health
+
+    # Check components
+    components = health["components"]
+    assert "database" in components
+    assert "cache" in components
+    assert "tools" in components
+
+    # Database should be connected
+    assert components["database"] == "connected"
+
+    # Tools should be registered
+    assert components["tools"]["registered"] == 23
+    assert components["tools"]["expected"] == 23
+
+    # Overall status should be healthy
+    assert health["status"] == "healthy"
+
+    server.close()

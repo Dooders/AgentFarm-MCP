@@ -1,7 +1,8 @@
 """Main MCP server implementation."""
 
 import logging
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from fastmcp import FastMCP
 
@@ -190,6 +191,56 @@ class SimulationMCPServer:
         """
         logger.info(f"Starting MCP server with {len(self._tools)} tools")
         self.mcp.run(**kwargs)
+
+    def health_check(self) -> Dict[str, Any]:
+        """Check server health status.
+
+        Returns:
+            Health status dictionary with component status
+
+        Example:
+            >>> health = server.health_check()
+            >>> print(f"Status: {health['status']}")
+        """
+        health_info = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "components": {},
+        }
+
+        # Check database connection
+        try:
+            with self.db_service.get_session() as session:
+                from sqlalchemy import text
+
+                session.execute(text("SELECT 1"))
+            health_info["components"]["database"] = "connected"
+        except Exception as e:
+            health_info["components"]["database"] = f"error: {str(e)}"
+            health_info["status"] = "unhealthy"
+
+        # Check cache status
+        try:
+            stats = self.cache_service.get_stats()
+            health_info["components"]["cache"] = {
+                "enabled": stats["enabled"],
+                "size": stats["size"],
+                "hit_rate": stats["hit_rate"],
+            }
+        except Exception as e:
+            health_info["components"]["cache"] = f"error: {str(e)}"
+
+        # Tool registry status
+        health_info["components"]["tools"] = {
+            "registered": len(self._tools),
+            "expected": 23,
+        }
+
+        # Overall health
+        if health_info["components"]["tools"]["registered"] != 23:
+            health_info["status"] = "degraded"
+
+        return health_info
 
     def close(self):
         """Shutdown server and cleanup resources."""
