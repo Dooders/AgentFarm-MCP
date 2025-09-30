@@ -2,8 +2,8 @@
 
 import pytest
 
-from mcp_server.config import MCPConfig
-from mcp_server.server import SimulationMCPServer
+from mcp.config import MCPConfig
+from mcp.server import SimulationMCPServer
 
 
 def test_full_analysis_workflow(mcp_config, test_simulation_id):

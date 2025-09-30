@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from mcp_server.config import CacheConfig, DatabaseConfig, MCPConfig, ServerConfig
+from mcp.config import CacheConfig, DatabaseConfig, MCPConfig, ServerConfig
 
 
 def test_database_config_valid(test_db_with_data):

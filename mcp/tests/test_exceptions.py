@@ -2,7 +2,7 @@
 
 import pytest
 
-from mcp_server.utils.exceptions import (
+from mcp.utils.exceptions import (
     CacheError,
     ConfigurationError,
     DatabaseError,

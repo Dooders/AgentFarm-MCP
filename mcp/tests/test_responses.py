@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 
-from mcp_server.models.responses import ToolError, ToolMetadata, ToolResponse
+from mcp.models.responses import ToolError, ToolMetadata, ToolResponse
 
 
 def test_tool_metadata_creation():

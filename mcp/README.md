@@ -35,13 +35,13 @@ pip install -e .
 
 ```bash
 # List available tools (23 total)
-python3 -m mcp_server --db-path /path/to/simulation.db --list-tools
+python3 -m mcp --db-path /path/to/simulation.db --list-tools
 
 # Run the server
-python3 -m mcp_server --db-path /path/to/simulation.db
+python3 -m mcp --db-path /path/to/simulation.db
 
 # With debugging
-python3 -m mcp_server --db-path /path/to/simulation.db --log-level DEBUG
+python3 -m mcp --db-path /path/to/simulation.db --log-level DEBUG
 ```
 
 ### Test It Works
@@ -55,7 +55,7 @@ python3 demo_all_tools.py
 python3 -m pytest tests/ -v
 
 # Check coverage
-python3 -m pytest tests/ --cov=mcp_server --cov-report=html
+python3 -m pytest tests/ --cov=mcp --cov-report=html
 ```
 
 ## 📚 Documentation
@@ -120,7 +120,7 @@ Specialized analysis
 ### Programmatic Usage
 
 ```python
-from mcp_server import MCPConfig, SimulationMCPServer
+from mcp import MCPConfig, SimulationMCPServer
 
 # Initialize server
 config = MCPConfig.from_db_path("/path/to/simulation.db")
@@ -175,7 +175,7 @@ Add to your Claude Desktop configuration:
       "command": "python3",
       "args": [
         "-m",
-        "mcp_server",
+        "mcp",
         "--db-path",
         "/absolute/path/to/simulation.db"
       ]
@@ -248,7 +248,7 @@ config = MCPConfig.from_env()
 python3 -m pytest tests/ -v
 
 # With coverage
-python3 -m pytest tests/ --cov=mcp_server --cov-report=html
+python3 -m pytest tests/ --cov=mcp --cov-report=html
 
 # Specific category
 python3 -m pytest tests/tools/ -v
@@ -315,7 +315,7 @@ FastMCP Server (23 tools)
 1. Create tool class extending `ToolBase`:
 
 ```python
-from mcp_server.tools.base import ToolBase
+from mcp.tools.base import ToolBase
 from pydantic import BaseModel, Field
 
 class MyToolParams(BaseModel):
@@ -343,7 +343,7 @@ class MyTool(ToolBase):
 2. Register in `server.py`:
 
 ```python
-from mcp_server.tools.my_tools import MyTool
+from mcp.tools.my_tools import MyTool
 
 # In _register_tools():
 tool_classes = [

@@ -3,8 +3,8 @@
 import pytest
 import time
 
-from mcp_server.config import CacheConfig
-from mcp_server.services.cache_service import CacheService
+from mcp.config import CacheConfig
+from mcp.services.cache_service import CacheService
 
 
 def test_cache_service_initialization():

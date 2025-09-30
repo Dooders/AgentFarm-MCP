@@ -3,8 +3,8 @@
 import pytest
 from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
 
-from mcp_server.tools.base import ToolBase
-from mcp_server.utils.exceptions import DatabaseError
+from mcp.tools.base import ToolBase
+from mcp.utils.exceptions import DatabaseError
 
 
 # Create a concrete test tool for testing
@@ -269,7 +269,7 @@ def test_tool_error_with_details(failing_tool):
 
 def test_tool_unexpected_error(services):
     """Test handling of unexpected errors."""
-    from mcp_server.utils.exceptions import MCPException
+    from mcp.utils.exceptions import MCPException
 
     class UnexpectedErrorTool(ToolBase):
         @property
@@ -299,7 +299,7 @@ def test_tool_unexpected_error(services):
 
 def test_tool_mcp_exception(services):
     """Test handling of MCPException subclasses."""
-    from mcp_server.utils.exceptions import ValidationError as MCPValidationError
+    from mcp.utils.exceptions import ValidationError as MCPValidationError
 
     class MCPErrorTool(ToolBase):
         @property

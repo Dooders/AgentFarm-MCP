@@ -4,7 +4,7 @@ import logging
 import pytest
 from pathlib import Path
 
-from mcp_server.utils.logging import get_logger, setup_logging
+from mcp.utils.logging import get_logger, setup_logging
 
 
 def test_setup_logging_basic():

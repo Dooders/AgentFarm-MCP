@@ -1,10 +1,10 @@
 """Unit tests for database service."""
 
 import pytest
-from mcp_server.config import DatabaseConfig
-from mcp_server.models.database_models import AgentModel, Simulation
-from mcp_server.services.database_service import DatabaseService
-from mcp_server.utils.exceptions import DatabaseError, SimulationNotFoundError
+from mcp.config import DatabaseConfig
+from mcp.models.database_models import AgentModel, Simulation
+from mcp.services.database_service import DatabaseService
+from mcp.utils.exceptions import DatabaseError, SimulationNotFoundError
 
 
 def test_database_service_initialization(db_config):

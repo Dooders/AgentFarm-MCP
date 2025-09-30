@@ -2,7 +2,7 @@
 
 import pytest
 
-from mcp_server.tools.query_tools import (
+from mcp.tools.query_tools import (
     GetSimulationMetricsTool,
     QueryActionsTool,
     QueryAgentsTool,

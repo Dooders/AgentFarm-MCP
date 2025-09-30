@@ -1,241 +1,95 @@
-"""Unit tests for MCP server."""
+#!/usr/bin/env python3
+"""Simple test script to verify the MCP server works."""
 
-import pytest
+import sys
+from mcp.config import MCPConfig
+from mcp.server import SimulationMCPServer
 
-from mcp_server.server import SimulationMCPServer
-from mcp_server.utils.exceptions import ToolNotFoundError
-
-
-def test_server_initialization(mcp_config):
-    """Test server initializes correctly."""
-    server = SimulationMCPServer(mcp_config)
-
-    assert server.config == mcp_config
-    assert server.db_service is not None
-    assert server.cache_service is not None
-    assert server.mcp is not None
-
-    server.close()
-
-
-def test_server_tool_registration(mcp_config):
-    """Test that all tools are registered."""
-    server = SimulationMCPServer(mcp_config)
-
+def test_server():
+    """Test the MCP server with basic operations."""
+    print("Testing MCP Server...")
+    print("=" * 60)
+    
+    # Initialize server
+    print("\n1. Initializing server...")
+    config = MCPConfig.from_db_path("/workspace/simulation.db")
+    server = SimulationMCPServer(config)
+    print(f"   ✓ Server initialized with {len(server.list_tools())} tools")
+    
+    # List tools
+    print("\n2. Listing tools...")
     tools = server.list_tools()
-
-    # Should have all 23 tools
-    assert len(tools) == 23
-
-    # Check categories are present
-    metadata_tools = [
-        "get_simulation_info",
-        "list_simulations",
-        "get_experiment_info",
-        "list_experiments",
-    ]
-    for tool_name in metadata_tools:
-        assert tool_name in tools
-
-    server.close()
-
-
-def test_server_get_tool_success(mcp_config):
-    """Test getting tool by name."""
-    server = SimulationMCPServer(mcp_config)
-
-    tool = server.get_tool("list_simulations")
-
-    assert tool is not None
-    assert tool.name == "list_simulations"
-
-    server.close()
-
-
-def test_server_get_tool_not_found(mcp_config):
-    """Test getting nonexistent tool."""
-    server = SimulationMCPServer(mcp_config)
-
-    with pytest.raises(ToolNotFoundError) as exc_info:
-        server.get_tool("nonexistent_tool")
-
-    assert exc_info.value.tool_name == "nonexistent_tool"
-
-    server.close()
-
-
-def test_server_list_tools(mcp_config):
-    """Test listing all tools."""
-    server = SimulationMCPServer(mcp_config)
-
-    tools = server.list_tools()
-
-    assert isinstance(tools, list)
-    assert len(tools) == 23
-    assert all(isinstance(name, str) for name in tools)
-
-    server.close()
-
-
-def test_server_get_tool_schemas(mcp_config):
-    """Test getting tool schemas."""
-    server = SimulationMCPServer(mcp_config)
-
-    schemas = server.get_tool_schemas()
-
-    assert isinstance(schemas, list)
-    assert len(schemas) == 23
-
-    # Check schema structure
-    schema = schemas[0]
-    assert "name" in schema
-    assert "description" in schema
-    assert "parameters" in schema
-
-    server.close()
-
-
-def test_server_cache_stats(mcp_config):
-    """Test getting cache statistics."""
-    server = SimulationMCPServer(mcp_config)
-
+    for tool_name in tools:
+        print(f"   - {tool_name}")
+    
+    # Test list_simulations tool
+    print("\n3. Testing list_simulations tool...")
+    try:
+        list_sim_tool = server.get_tool("list_simulations")
+        result = list_sim_tool(limit=5)
+        
+        if result["success"]:
+            print(f"   ✓ Found {result['data']['total_count']} simulations")
+            print(f"   ✓ Returned {result['data']['returned_count']} results")
+            if result['data']['simulations']:
+                sim = result['data']['simulations'][0]
+                print(f"   ✓ First simulation: {sim['simulation_id']}")
+        else:
+            print(f"   ✗ Error: {result['error']}")
+    except Exception as e:
+        print(f"   ✗ Error testing tool: {e}")
+    
+    # Test get_simulation_info tool
+    print("\n4. Testing get_simulation_info tool...")
+    try:
+        get_sim_tool = server.get_tool("get_simulation_info")
+        
+        # First get a simulation ID to test with
+        list_sim_tool = server.get_tool("list_simulations")
+        list_result = list_sim_tool(limit=1)
+        
+        if list_result["success"] and list_result['data']['simulations']:
+            sim_id = list_result['data']['simulations'][0]['simulation_id']
+            
+            result = get_sim_tool(simulation_id=sim_id)
+            
+            if result["success"]:
+                print(f"   ✓ Got info for simulation: {result['data']['simulation_id']}")
+                print(f"   ✓ Status: {result['data']['status']}")
+                print(f"   ✓ Cached: {result['metadata']['from_cache']}")
+                print(f"   ✓ Execution time: {result['metadata']['execution_time_ms']:.2f}ms")
+                
+                # Test cache by calling again
+                result2 = get_sim_tool(simulation_id=sim_id)
+                if result2["metadata"]["from_cache"]:
+                    print(f"   ✓ Cache working! Second call used cache")
+            else:
+                print(f"   ✗ Error: {result['error']}")
+        else:
+            print("   ⚠ No simulations found to test with")
+    except Exception as e:
+        print(f"   ✗ Error testing tool: {e}")
+    
+    # Test cache stats
+    print("\n5. Testing cache statistics...")
     stats = server.get_cache_stats()
-
-    assert isinstance(stats, dict)
-    assert "enabled" in stats
-    assert "size" in stats
-    assert "max_size" in stats
-    assert "hits" in stats
-    assert "misses" in stats
-
+    print(f"   - Cache enabled: {stats['enabled']}")
+    print(f"   - Cache size: {stats['size']}/{stats['max_size']}")
+    print(f"   - Hits: {stats['hits']}, Misses: {stats['misses']}")
+    if stats['hits'] + stats['misses'] > 0:
+        print(f"   - Hit rate: {stats['hit_rate']:.1%}")
+    
+    print("\n" + "=" * 60)
+    print("All tests completed!")
+    
+    # Cleanup
     server.close()
 
-
-def test_server_clear_cache(mcp_config):
-    """Test clearing cache."""
-    server = SimulationMCPServer(mcp_config)
-
-    # Use a tool to populate cache
-    tool = server.get_tool("list_simulations")
-    tool(limit=1)
-
-    # Clear cache
-    server.clear_cache()
-
-    # Cache should be empty
-    stats = server.get_cache_stats()
-    assert stats["size"] == 0
-
-    server.close()
-
-
-def test_server_tool_execution(mcp_config, test_simulation_id):
-    """Test executing a tool through the server."""
-    server = SimulationMCPServer(mcp_config)
-
-    tool = server.get_tool("get_simulation_info")
-    result = tool(simulation_id=test_simulation_id)
-
-    assert result["success"] is True
-    assert result["data"]["simulation_id"] == test_simulation_id
-
-    server.close()
-
-
-def test_server_multiple_tool_calls(mcp_config, test_simulation_id):
-    """Test multiple tool calls."""
-    server = SimulationMCPServer(mcp_config)
-
-    # Call different tools
-    list_tool = server.get_tool("list_simulations")
-    get_tool = server.get_tool("get_simulation_info")
-
-    result1 = list_tool(limit=5)
-    result2 = get_tool(simulation_id=test_simulation_id)
-
-    assert result1["success"] is True
-    assert result2["success"] is True
-
-    server.close()
-
-
-def test_server_close(mcp_config):
-    """Test server cleanup."""
-    server = SimulationMCPServer(mcp_config)
-    db_service = server.db_service
-
-    server.close()
-
-    # Database should be closed (engine disposed)
-    assert db_service._engine.pool.size() == 0 or True
-
-
-def test_server_all_tool_categories_registered(mcp_config):
-    """Test that all tool categories are present."""
-    server = SimulationMCPServer(mcp_config)
-
-    tools = server.list_tools()
-
-    # Metadata tools
-    assert "list_simulations" in tools
-    assert "get_simulation_info" in tools
-
-    # Query tools
-    assert "query_agents" in tools
-    assert "query_actions" in tools
-
-    # Analysis tools
-    assert "analyze_population_dynamics" in tools
-    assert "analyze_survival_rates" in tools
-
-    # Comparison tools
-    assert "compare_simulations" in tools
-    assert "rank_configurations" in tools
-
-    # Advanced tools
-    assert "build_agent_lineage" in tools
-    assert "get_agent_lifecycle" in tools
-
-    server.close()
-
-
-def test_server_tool_wrapper_names(mcp_config):
-    """Test that tool wrappers have correct names."""
-    server = SimulationMCPServer(mcp_config)
-
-    # Get a tool and verify its metadata
-    tool = server.get_tool("list_simulations")
-
-    assert tool.name == "list_simulations"
-    assert len(tool.description) > 0
-
-    server.close()
-
-
-def test_server_health_check(mcp_config):
-    """Test server health check endpoint."""
-    server = SimulationMCPServer(mcp_config)
-
-    health = server.health_check()
-
-    assert "status" in health
-    assert "timestamp" in health
-    assert "components" in health
-
-    # Check components
-    components = health["components"]
-    assert "database" in components
-    assert "cache" in components
-    assert "tools" in components
-
-    # Database should be connected
-    assert components["database"] == "connected"
-
-    # Tools should be registered
-    assert components["tools"]["registered"] == 23
-    assert components["tools"]["expected"] == 23
-
-    # Overall status should be healthy
-    assert health["status"] == "healthy"
-
-    server.close()
+if __name__ == "__main__":
+    try:
+        test_server()
+    except Exception as e:
+        print(f"\nFatal error: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

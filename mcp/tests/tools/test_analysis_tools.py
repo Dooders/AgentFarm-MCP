@@ -2,7 +2,7 @@
 
 import pytest
 
-from mcp_server.tools.analysis_tools import (
+from mcp.tools.analysis_tools import (
     AnalyzeAgentPerformanceTool,
     AnalyzePopulationDynamicsTool,
     AnalyzeReproductionTool,

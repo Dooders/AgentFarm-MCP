@@ -2,13 +2,13 @@
 
 import pytest
 
-from mcp_server.tools.metadata_tools import (
+from mcp.tools.metadata_tools import (
     GetExperimentInfoTool,
     GetSimulationInfoTool,
     ListExperimentsTool,
     ListSimulationsTool,
 )
-from mcp_server.utils.exceptions import ExperimentNotFoundError, SimulationNotFoundError
+from mcp.utils.exceptions import ExperimentNotFoundError, SimulationNotFoundError
 
 
 @pytest.fixture

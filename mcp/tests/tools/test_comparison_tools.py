@@ -2,7 +2,7 @@
 
 import pytest
 
-from mcp_server.tools.comparison_tools import (
+from mcp.tools.comparison_tools import (
     CompareGenerationsTool,
     CompareParametersTool,
     CompareSimulationsTool,
