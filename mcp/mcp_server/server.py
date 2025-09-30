@@ -23,6 +23,15 @@ from mcp_server.tools.query_tools import (
     QueryResourcesTool,
     QueryStatesTool,
 )
+from mcp_server.tools.analysis_tools import (
+    AnalyzeAgentPerformanceTool,
+    AnalyzePopulationDynamicsTool,
+    AnalyzeReproductionTool,
+    AnalyzeResourceEfficiencyTool,
+    AnalyzeSocialPatternsTool,
+    AnalyzeSurvivalRatesTool,
+    IdentifyCriticalEventsTool,
+)
 from mcp_server.utils.exceptions import ToolNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -70,6 +79,14 @@ class SimulationMCPServer:
             QueryResourcesTool,
             QueryInteractionsTool,
             GetSimulationMetricsTool,
+            # Analysis tools
+            AnalyzePopulationDynamicsTool,
+            AnalyzeSurvivalRatesTool,
+            AnalyzeResourceEfficiencyTool,
+            AnalyzeAgentPerformanceTool,
+            IdentifyCriticalEventsTool,
+            AnalyzeSocialPatternsTool,
+            AnalyzeReproductionTool,
         ]
 
         # Instantiate and register each tool
