@@ -243,3 +243,12 @@ def test_mcp_config_defaults(test_db_with_data):
     assert config.server.max_result_size == 10000
     assert config.server.default_limit == 100
     assert config.server.log_level == "INFO"
+
+
+def test_database_config_path_is_directory(tmp_path):
+    """Test that config rejects directory as path."""
+    directory = tmp_path / "some_dir"
+    directory.mkdir()
+
+    with pytest.raises(ValueError, match="not a file"):
+        DatabaseConfig(path=str(directory))

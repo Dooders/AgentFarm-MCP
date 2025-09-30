@@ -347,3 +347,71 @@ def test_pagination_consistency(tool_fixture, params, test_simulation_id, reques
     assert result["data"]["limit"] == 5
     assert result["data"]["offset"] == 0
     assert result["data"]["returned_count"] <= 5
+
+
+# Additional edge case tests
+
+
+def test_query_actions_with_target(query_actions_tool, test_simulation_id):
+    """Test that actions include target information."""
+    result = query_actions_tool(simulation_id=test_simulation_id, limit=5)
+
+    assert result["success"] is True
+    # Just verify the field exists
+    for action in result["data"]["actions"]:
+        assert "action_target_id" in action
+
+
+def test_query_states_full_data(query_states_tool, test_simulation_id):
+    """Test that states include all fields."""
+    result = query_states_tool(simulation_id=test_simulation_id, limit=1)
+
+    if result["data"]["states"]:
+        state = result["data"]["states"][0]
+        # Verify all position fields
+        assert "x" in state["position"]
+        assert "y" in state["position"]
+        assert "z" in state["position"]
+        # Verify all numeric fields
+        assert isinstance(state["resource_level"], (int, float))
+        assert isinstance(state["age"], int)
+
+
+def test_query_resources_step_number_vs_range(query_resources_tool, test_simulation_id):
+    """Test that step_number takes precedence over range."""
+    result = query_resources_tool(
+        simulation_id=test_simulation_id,
+        step_number=0,
+        start_step=10,
+        end_step=20,
+        limit=20,
+    )
+
+    assert result["success"] is True
+    # When step_number is specified, it should override range
+    for resource in result["data"]["resources"]:
+        assert resource["step_number"] == 0
+
+
+def test_query_interactions_step_range(query_interactions_tool, test_simulation_id):
+    """Test interactions with step range."""
+    result = query_interactions_tool(
+        simulation_id=test_simulation_id, start_step=0, end_step=25, limit=20
+    )
+
+    assert result["success"] is True
+    for interaction in result["data"]["interactions"]:
+        assert 0 <= interaction["step_number"] <= 25
+
+
+def test_get_simulation_metrics_ordering(get_simulation_metrics_tool, test_simulation_id):
+    """Test that metrics are ordered by step number."""
+    result = get_simulation_metrics_tool(simulation_id=test_simulation_id, limit=20)
+
+    assert result["success"] is True
+
+    # Check ordering
+    steps = result["data"]["metrics"]
+    if len(steps) > 1:
+        for i in range(len(steps) - 1):
+            assert steps[i]["step_number"] <= steps[i + 1]["step_number"]

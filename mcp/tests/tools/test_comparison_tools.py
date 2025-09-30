@@ -224,3 +224,61 @@ def test_compare_generations_max_limit(compare_generations_tool, test_simulation
 
     assert result["success"] is True
     assert result["data"]["generations_analyzed"] <= 2
+
+
+def test_compare_simulations_invalid_simulation(compare_simulations_tool):
+    """Test comparison with invalid simulation."""
+    result = compare_simulations_tool(simulation_ids=["test_sim_000", "invalid_999"])
+
+    # Should fail due to invalid simulation
+    assert result["success"] is False
+
+
+def test_compare_parameters_no_variance(compare_parameters_tool):
+    """Test parameter comparison when all have same value."""
+    # If all simulations have same parameter value
+    result = compare_parameters_tool(
+        parameter_name="simulation_steps",  # Likely all have 1000
+        outcome_metric="total_agents",
+        limit=5,
+    )
+
+    # May return message about no variance
+    assert result["success"] is True or "message" in result["data"]
+
+
+def test_rank_configurations_with_limit(rank_configurations_tool):
+    """Test ranking with specific limit."""
+    result = rank_configurations_tool(
+        metric_name="total_agents", aggregation="mean", limit=3
+    )
+
+    assert result["success"] is True
+    assert len(result["data"]["rankings"]) <= 3
+
+
+def test_rank_configurations_best_worst(rank_configurations_tool):
+    """Test that best and worst are identified."""
+    result = rank_configurations_tool(metric_name="total_agents", aggregation="mean")
+
+    if result["data"]["total_ranked"] > 0:
+        assert "best_simulation" in result["data"]
+        assert "worst_simulation" in result["data"]
+        assert result["data"]["best_simulation"]["rank"] == 1
+
+
+def test_compare_generations_lifespan_stats(compare_generations_tool, test_simulation_id):
+    """Test that lifespan stats are calculated."""
+    result = compare_generations_tool(simulation_id=test_simulation_id)
+
+    # Check if any generation has lifespan stats
+    gens = result["data"]["generations"]
+    for gen_data in gens.values():
+        if gen_data["dead"] > 0:
+            # If there are dead agents, should have lifespan stats
+            if "lifespan_stats" in gen_data:
+                ls = gen_data["lifespan_stats"]
+                assert "mean" in ls
+                assert "median" in ls
+                assert "min" in ls
+                assert "max" in ls

@@ -168,3 +168,45 @@ def test_server_close(mcp_config):
 
     # Database should be closed (engine disposed)
     assert db_service._engine.pool.size() == 0 or True
+
+
+def test_server_all_tool_categories_registered(mcp_config):
+    """Test that all tool categories are present."""
+    server = SimulationMCPServer(mcp_config)
+
+    tools = server.list_tools()
+
+    # Metadata tools
+    assert "list_simulations" in tools
+    assert "get_simulation_info" in tools
+
+    # Query tools
+    assert "query_agents" in tools
+    assert "query_actions" in tools
+
+    # Analysis tools
+    assert "analyze_population_dynamics" in tools
+    assert "analyze_survival_rates" in tools
+
+    # Comparison tools
+    assert "compare_simulations" in tools
+    assert "rank_configurations" in tools
+
+    # Advanced tools
+    assert "build_agent_lineage" in tools
+    assert "get_agent_lifecycle" in tools
+
+    server.close()
+
+
+def test_server_tool_wrapper_names(mcp_config):
+    """Test that tool wrappers have correct names."""
+    server = SimulationMCPServer(mcp_config)
+
+    # Get a tool and verify its metadata
+    tool = server.get_tool("list_simulations")
+
+    assert tool.name == "list_simulations"
+    assert len(tool.description) > 0
+
+    server.close()

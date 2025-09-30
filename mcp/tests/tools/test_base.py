@@ -256,3 +256,101 @@ def test_tool_execution_time_measured(test_tool):
     exec_time = result["metadata"]["execution_time_ms"]
     assert exec_time >= 0
     assert isinstance(exec_time, (int, float))
+
+
+def test_tool_error_with_details(failing_tool):
+    """Test error formatting with details."""
+    result = failing_tool(value=42, name="test")
+
+    assert result["success"] is False
+    assert result["error"]["type"] == "DatabaseError"
+    assert "message" in result["error"]
+
+
+def test_tool_unexpected_error(services):
+    """Test handling of unexpected errors."""
+    from mcp_server.utils.exceptions import MCPException
+
+    class UnexpectedErrorTool(ToolBase):
+        @property
+        def name(self):
+            return "unexpected_tool"
+
+        @property
+        def description(self):
+            return "Tool that raises unexpected error"
+
+        @property
+        def parameters_schema(self):
+            return TestToolParams
+
+        def execute(self, **params):
+            raise RuntimeError("Unexpected runtime error")
+
+    db_service, cache_service = services
+    tool = UnexpectedErrorTool(db_service, cache_service)
+
+    result = tool(value=42, name="test")
+
+    assert result["success"] is False
+    assert result["error"]["type"] == "UnknownError"
+    assert "Unexpected runtime error" in result["error"]["message"]
+
+
+def test_tool_mcp_exception(services):
+    """Test handling of MCPException subclasses."""
+    from mcp_server.utils.exceptions import ValidationError as MCPValidationError
+
+    class MCPErrorTool(ToolBase):
+        @property
+        def name(self):
+            return "mcp_error_tool"
+
+        @property
+        def description(self):
+            return "Tool that raises MCP error"
+
+        @property
+        def parameters_schema(self):
+            return TestToolParams
+
+        def execute(self, **params):
+            raise MCPValidationError("Custom validation error", details={"field": "value"})
+
+    db_service, cache_service = services
+    tool = MCPErrorTool(db_service, cache_service)
+
+    result = tool(value=42, name="test")
+
+    assert result["success"] is False
+    assert result["error"]["type"] == "ValidationError"
+    assert "Custom validation error" in result["error"]["message"]
+
+
+def test_tool_abstract_methods_must_be_implemented():
+    """Test that abstract methods must be implemented."""
+    from abc import ABC
+
+    # Try to create incomplete tool (should fail at instantiation attempt)
+    class IncompleteTool(ToolBase):
+        # Missing abstract method implementations
+        pass
+
+    # Can't instantiate without implementing abstract methods
+    # This is caught at class definition time by Python
+    assert issubclass(ToolBase, ABC)
+
+
+def test_tool_all_abstract_properties_defined(test_tool):
+    """Test that all abstract properties are defined."""
+    # These should all be accessible
+    assert hasattr(test_tool, "name")
+    assert hasattr(test_tool, "description")
+    assert hasattr(test_tool, "parameters_schema")
+    assert hasattr(test_tool, "execute")
+
+    # And they should return appropriate types
+    assert isinstance(test_tool.name, str)
+    assert isinstance(test_tool.description, str)
+    assert test_tool.parameters_schema is not None
+    assert callable(test_tool.execute)

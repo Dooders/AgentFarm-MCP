@@ -186,3 +186,58 @@ def test_get_lifecycle_invalid_agent(get_lifecycle_tool, test_simulation_id):
 
     assert result["success"] is True  # Returns with error in data
     assert "error" in result["data"]
+
+
+def test_build_lineage_depth_limit(build_lineage_tool, test_simulation_id, test_agent_id):
+    """Test lineage with different depth limits."""
+    result1 = build_lineage_tool(
+        simulation_id=test_simulation_id, agent_id=test_agent_id, depth=1
+    )
+    result2 = build_lineage_tool(
+        simulation_id=test_simulation_id, agent_id=test_agent_id, depth=5
+    )
+
+    assert result1["success"] is True
+    assert result2["success"] is True
+
+
+def test_get_lifecycle_without_states(get_lifecycle_tool, test_simulation_id, test_agent_id):
+    """Test lifecycle without state data."""
+    result = get_lifecycle_tool(
+        simulation_id=test_simulation_id,
+        agent_id=test_agent_id,
+        include_states=False,
+        include_actions=True,
+        include_health=True,
+    )
+
+    assert result["success"] is True
+    assert "states" not in result["data"]
+    assert "agent_info" in result["data"]
+
+
+def test_get_lifecycle_resource_change_calculation(get_lifecycle_tool, test_simulation_id):
+    """Test that resource changes are calculated in actions."""
+    # Use agent_000 which has actions
+    result = get_lifecycle_tool(
+        simulation_id=test_simulation_id, agent_id="agent_000", include_actions=True
+    )
+
+    if "actions" in result["data"] and result["data"]["actions"]:
+        action = result["data"]["actions"][0]
+        assert "resources_change" in action
+
+
+def test_build_lineage_reproduction_event_details(build_lineage_tool, test_simulation_id):
+    """Test that reproduction event details are included."""
+    # agent_010 is offspring of agent_000
+    result = build_lineage_tool(
+        simulation_id=test_simulation_id, agent_id="agent_010", depth=2
+    )
+
+    if result["data"]["ancestors"]:
+        ancestor = result["data"]["ancestors"][0]
+        if "reproduction_event" in ancestor:
+            event = ancestor["reproduction_event"]
+            assert "step" in event
+            assert "resources_cost" in event

@@ -158,3 +158,25 @@ def test_database_service_read_only_config(test_db_with_data):
     assert service.config.read_only is True
 
     service.close()
+
+
+def test_database_service_validate_nonexistent_returns_false(db_service):
+    """Test that validate returns False for errors."""
+    # This tests the except DatabaseError branch
+    result = db_service.validate_simulation_exists("definitely_does_not_exist_12345")
+    assert result is False
+
+
+def test_database_service_writable_mode(test_db_with_data):
+    """Test database service in writable mode."""
+    config = DatabaseConfig(path=str(test_db_with_data), read_only=False)
+    service = DatabaseService(config)
+
+    assert service.config.read_only is False
+
+    # Should still be able to query
+    with service.get_session() as session:
+        result = session.query(Simulation).first()
+        assert result is not None
+
+    service.close()

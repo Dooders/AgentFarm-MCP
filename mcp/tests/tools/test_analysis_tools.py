@@ -312,3 +312,66 @@ def test_analyze_reproduction_basic(analyze_reproduction_tool, test_simulation_i
     # We created one reproduction event
     if "total_attempts" in result["data"]:
         assert result["data"]["total_attempts"] >= 1
+
+
+def test_analyze_reproduction_with_events(analyze_reproduction_tool, test_simulation_id):
+    """Test reproduction analysis with events."""
+    result = analyze_reproduction_tool(simulation_id=test_simulation_id)
+
+    if "total_attempts" in result["data"]:
+        data = result["data"]
+        assert "successful" in data
+        assert "failed" in data
+        assert "success_rate_percent" in data
+        assert "resource_analysis" in data
+
+
+def test_analyze_population_no_data(analyze_population_tool):
+    """Test population analysis with no data."""
+    # Create a simulation with no steps
+    result = analyze_population_tool(
+        simulation_id="test_sim_001", start_step=9999, end_step=10000
+    )
+
+    assert result["success"] is True
+    if "error" in result["data"]:
+        assert "No data found" in result["data"]["error"]
+
+
+def test_analyze_survival_no_agents(analyze_survival_tool):
+    """Test survival analysis with simulation that has no agents."""
+    # test_sim_004 has no agents
+    result = analyze_survival_tool(simulation_id="test_sim_004", group_by="generation")
+
+    assert result["success"] is True
+    if "error" in result["data"]:
+        assert "No agents" in result["data"]["error"]
+
+
+def test_analyze_resource_step_range(analyze_resource_tool, test_simulation_id):
+    """Test resource efficiency with step range."""
+    result = analyze_resource_tool(
+        simulation_id=test_simulation_id, start_step=0, end_step=50
+    )
+
+    assert result["success"] is True
+    assert result["data"]["step_range"]["start"] == 0
+    assert result["data"]["step_range"]["end"] == 50
+
+
+def test_identify_events_high_threshold(identify_events_tool, test_simulation_id):
+    """Test event detection with very high threshold."""
+    result = identify_events_tool(simulation_id=test_simulation_id, threshold_percent=99.0)
+
+    assert result["success"] is True
+    # Very high threshold should detect fewer or no events
+    assert "events" in result["data"]
+
+
+def test_identify_events_summary_structure(identify_events_tool, test_simulation_id):
+    """Test event summary structure."""
+    result = identify_events_tool(simulation_id=test_simulation_id, threshold_percent=10.0)
+
+    assert "summary" in result["data"]
+    summary = result["data"]["summary"]
+    assert "total_events" in summary
