@@ -13,7 +13,7 @@ A production-ready Model Context Protocol (MCP) server that enables LLM agents (
 
 ### Key Features
 
-- ✅ **23 specialized tools** for simulation analysis
+- ✅ **25 specialized tools** for simulation analysis
 - ✅ **Read-only database access** for safety
 - ✅ **Smart caching** (LRU + TTL) for performance
 - ✅ **Comprehensive error handling** with detailed messages
@@ -21,6 +21,9 @@ A production-ready Model Context Protocol (MCP) server that enables LLM agents (
 - ✅ **High performance** (<100ms queries)
 - ✅ **91% test coverage** with 234 unit tests
 - ✅ **Flexible configuration** (YAML, ENV, code)
+- ✅ **Database backend abstraction** (SQLite, PostgreSQL support)
+- ✅ **Health monitoring** (server health checks and system metrics)
+- ✅ **Enhanced error handling** (specific exception types with detailed context)
 
 ## 🚀 Quick Start
 
@@ -34,7 +37,7 @@ pip install -e .
 ### Start the Server
 
 ```bash
-# List available tools (23 total)
+# List available tools (25 total)
 python3 -m mcp --db-path /path/to/simulation.db --list-tools
 
 # Run the server
@@ -75,7 +78,7 @@ python3 -m pytest tests/ --cov=mcp --cov-report=html
 ### 📖 Complete Index
 - **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** - Complete documentation guide
 
-## 🛠️ Available Tools (23)
+## 🛠️ Available Tools (25)
 
 ### Metadata Tools (4)
 Query simulation and experiment metadata
@@ -114,6 +117,11 @@ Multi-simulation analysis
 Specialized analysis
 - `build_agent_lineage` - Construct family trees
 - `get_agent_lifecycle` - Complete agent history
+
+### Health & Monitoring Tools (2)
+Server health and system information
+- `health_check` - Comprehensive server health monitoring
+- `system_info` - System information and performance metrics
 
 ## 💻 Usage Examples
 
@@ -299,7 +307,7 @@ LLM Agent (Claude/GPT)
         ↓
     MCP Protocol
         ↓
-FastMCP Server (23 tools)
+FastMCP Server (25 tools)
         ↓
     Services Layer
     ├── DatabaseService (SQLAlchemy + pooling)
@@ -380,4 +388,4 @@ Built with:
 **Status:** Production Ready ✅  
 **Tests:** 234 passing ✅  
 **Coverage:** 91% ✅  
-**Tools:** 23 ✅
+**Tools:** 25 ✅

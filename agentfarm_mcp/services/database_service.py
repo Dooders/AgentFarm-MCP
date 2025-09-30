@@ -2,7 +2,7 @@
 
 import logging
 from contextlib import contextmanager
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -10,7 +10,14 @@ from sqlalchemy.pool import QueuePool
 
 from ..config import DatabaseConfig
 from ..models.database_models import Simulation
-from ..utils.exceptions import DatabaseError, QueryTimeoutError, SimulationNotFoundError
+from ..utils.exceptions import ConnectionError as MCPConnectionError
+from ..utils.exceptions import (
+    DatabaseError,
+    QueryExecutionError,
+    QueryTimeoutError,
+    SimulationNotFoundError,
+)
+from .database_url_builder import DatabaseURLBuilderFactory, detect_database_type
 
 logger = logging.getLogger(__name__)
 
@@ -43,20 +50,13 @@ class DatabaseService:
     def _initialize_engine(self):
         """Initialize SQLAlchemy engine and session factory."""
         try:
-            # Configure connection arguments
-            connect_args = {
-                "timeout": self.config.query_timeout,
-                "check_same_thread": False,
-            }
+            # Detect database type and create appropriate URL builder
+            db_type = detect_database_type(self.config)
+            url_builder = DatabaseURLBuilderFactory.create_builder(db_type)
 
-            # Create database URL (SQLite-specific for now)
-            # Note: SQLite read-only mode can be enforced via URI with mode=ro
-            if self.config.read_only:
-                # Use SQLite URI format to enforce read-only mode
-                db_url = f"sqlite:///file:{self.config.path}?mode=ro&uri=true"
-                connect_args["uri"] = True
-            else:
-                db_url = f"sqlite:///{self.config.path}"
+            # Build database URL and connection arguments
+            db_url = url_builder.build_url(self.config)
+            connect_args = url_builder.get_connect_args(self.config)
 
             # Create engine with connection pooling
             self._engine = create_engine(
@@ -73,14 +73,18 @@ class DatabaseService:
             self._SessionFactory = sessionmaker(bind=self._engine, expire_on_commit=False)
 
             logger.info(
-                "Database service initialized: %s (read_only=%s)",
+                "Database service initialized: %s (type=%s, read_only=%s)",
                 self.config.path,
+                db_type,
                 self.config.read_only,
             )
 
         except Exception as exc:
             logger.error("Failed to initialize database: %s", exc)
-            raise DatabaseError(f"Database initialization failed: {exc}") from exc
+            db_type = detect_database_type(self.config)
+            raise MCPConnectionError(
+                f"Database initialization failed: {exc}", database_type=db_type
+            ) from exc
 
     @contextmanager
     def get_session(self) -> Session:
@@ -105,7 +109,7 @@ class DatabaseService:
         except Exception as exc:
             session.rollback()
             logger.error("Database session error: %s", exc)
-            raise DatabaseError(f"Query execution failed: {exc}") from exc
+            raise QueryExecutionError(f"Query execution failed: {exc}") from exc
         finally:
             session.close()
 
@@ -138,7 +142,7 @@ class DatabaseService:
                 raise
             except Exception as exc:
                 logger.error("Query execution error: %s", exc)
-                raise DatabaseError(f"Query failed: {exc}") from exc
+                raise QueryExecutionError(f"Query failed: {exc}") from exc
 
     def validate_simulation_exists(self, simulation_id: str) -> bool:
         """Check if simulation exists in database.

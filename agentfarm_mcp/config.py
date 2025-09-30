@@ -8,21 +8,94 @@ from pydantic import BaseModel, Field, field_validator
 class DatabaseConfig(BaseModel):
     """Database configuration."""
 
-    path: str = Field(..., description="Path to database file")
+    path: str = Field(..., description="Path to database file or connection string")
     pool_size: int = Field(5, ge=1, le=20, description="Connection pool size")
     query_timeout: int = Field(30, ge=5, le=300, description="Query timeout in seconds")
     read_only: bool = Field(True, description="Read-only access mode")
+    database_type: str = Field("sqlite", description="Database type (sqlite, postgresql, etc.)")
+    
+    # PostgreSQL specific fields (optional)
+    host: str = Field("localhost", description="Database host (PostgreSQL)")
+    port: int = Field(5432, ge=1, le=65535, description="Database port (PostgreSQL)")
+    database: str = Field("simulation", description="Database name (PostgreSQL)")
+    username: str = Field(None, description="Database username (PostgreSQL)")
+    password: str = Field(None, description="Database password (PostgreSQL)")
+    sslmode: str = Field("prefer", description="SSL mode (PostgreSQL)")
 
     @field_validator("path")
     @classmethod
     def validate_path_exists(cls, v: str) -> str:
-        """Ensure database file exists."""
+        """Validate database path or connection string."""
+        # If it's a connection string, validate format
+        if v.startswith(('postgresql://', 'postgres://', 'mysql://', 'sqlite://')):
+            # Basic connection string validation
+            if '://' not in v or len(v.split('://')) != 2:
+                raise ValueError(f"Invalid connection string format: {v}")
+            return v
+        
+        # For file paths, validate existence with better error messages
         path = Path(v)
+        
+        # Check if path exists
         if not path.exists():
-            raise ValueError(f"Database file not found: {v}")
+            # Provide helpful suggestions for common issues
+            if path.parent.exists():
+                raise ValueError(
+                    f"Database file not found: {v}\n"
+                    f"Directory exists: {path.parent}\n"
+                    f"Available files: {list(path.parent.glob('*.db')) + list(path.parent.glob('*.sqlite'))}"
+                )
+            else:
+                raise ValueError(
+                    f"Database file not found: {v}\n"
+                    f"Directory does not exist: {path.parent}\n"
+                    f"Please check the path and ensure the directory exists."
+                )
+        
+        # Check if it's a file
         if not path.is_file():
-            raise ValueError(f"Database path is not a file: {v}")
+            if path.is_dir():
+                raise ValueError(
+                    f"Database path is a directory, not a file: {v}\n"
+                    f"Please specify the full path to the database file."
+                )
+            else:
+                raise ValueError(f"Database path is not a file: {v}")
+        
+        # Check if file is readable
+        if not path.stat().st_size > 0:
+            raise ValueError(f"Database file is empty: {v}")
+        
         return str(path.absolute())
+    
+    @field_validator("database_type")
+    @classmethod
+    def validate_database_type(cls, v: str) -> str:
+        """Validate database type."""
+        supported_types = ["sqlite", "postgresql", "postgres"]
+        if v.lower() not in supported_types:
+            raise ValueError(f"Unsupported database type: {v}. Supported types: {', '.join(supported_types)}")
+        return v.lower()
+    
+    @field_validator("sslmode")
+    @classmethod
+    def validate_sslmode(cls, v: str) -> str:
+        """Validate SSL mode for PostgreSQL."""
+        valid_modes = ["disable", "allow", "prefer", "require", "verify-ca", "verify-full"]
+        if v.lower() not in valid_modes:
+            raise ValueError(f"Invalid SSL mode: {v}. Valid modes: {', '.join(valid_modes)}")
+        return v.lower()
+    
+    def model_post_init(self, __context):
+        """Post-initialization validation."""
+        # Validate PostgreSQL-specific fields when using PostgreSQL
+        if self.database_type in ["postgresql", "postgres"]:
+            if not self.path.startswith(('postgresql://', 'postgres://')):
+                # If not a connection string, validate individual fields
+                if not self.host:
+                    raise ValueError("PostgreSQL host is required when not using connection string")
+                if not self.database:
+                    raise ValueError("PostgreSQL database name is required when not using connection string")
 
 
 class CacheConfig(BaseModel):
@@ -152,7 +225,12 @@ class MCPConfig(BaseModel):
 
         db_path = os.getenv("DB_PATH")
         if not db_path:
-            raise ValueError("DB_PATH environment variable is required")
+            raise ValueError(
+                "DB_PATH environment variable is required.\n"
+                "Set it to either:\n"
+                "  - A file path: DB_PATH=/path/to/simulation.db\n"
+                "  - A connection string: DB_PATH=postgresql://user:pass@host:port/db"
+            )
 
         return cls(
             database=DatabaseConfig(

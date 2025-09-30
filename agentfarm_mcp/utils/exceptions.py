@@ -144,3 +144,124 @@ class ConfigurationError(MCPException):
 
     Raised when configuration is invalid or missing required values.
     """
+
+
+class AgentNotFoundError(DatabaseError):
+    """Requested agent does not exist.
+
+    Raised when attempting to access an agent that doesn't exist
+    in the database.
+    """
+
+    def __init__(self, agent_id: str, simulation_id: str = None):
+        """Initialize with agent ID.
+
+        Args:
+            agent_id: ID of the agent that was not found
+            simulation_id: Optional simulation ID for context
+        """
+        self.agent_id = agent_id
+        self.simulation_id = simulation_id
+        message = f"Agent not found: {agent_id}"
+        if simulation_id:
+            message += f" in simulation {simulation_id}"
+        details = {"agent_id": agent_id}
+        if simulation_id:
+            details["simulation_id"] = simulation_id
+        super().__init__(message, details)
+
+
+class ConnectionError(DatabaseError):
+    """Database connection errors.
+
+    Raised when unable to establish or maintain database connection.
+    """
+
+    def __init__(
+        self, message: str, database_type: str = None, details: Optional[Dict[str, Any]] = None
+    ):
+        """Initialize with connection error details.
+
+        Args:
+            message: Error message
+            database_type: Type of database (sqlite, postgresql, etc.)
+            details: Optional additional error details
+        """
+        self.database_type = database_type
+        if database_type:
+            message = f"Database connection failed ({database_type}): {message}"
+        super().__init__(message, details)
+
+
+class QueryExecutionError(DatabaseError):
+    """Query execution errors.
+
+    Raised when a database query fails to execute properly.
+    """
+
+    def __init__(self, message: str, query: str = None, details: Optional[Dict[str, Any]] = None):
+        """Initialize with query execution error details.
+
+        Args:
+            message: Error message
+            query: Optional query that failed
+            details: Optional additional error details
+        """
+        self.query = query
+        if query:
+            details = details or {}
+            details["query"] = query
+        super().__init__(message, details)
+
+
+class PermissionError(MCPException):
+    """Permission-related errors.
+
+    Raised when operation is not allowed due to insufficient permissions.
+    """
+
+    def __init__(
+        self, message: str, operation: str = None, details: Optional[Dict[str, Any]] = None
+    ):
+        """Initialize with permission error details.
+
+        Args:
+            message: Error message
+            operation: Optional operation that was denied
+            details: Optional additional error details
+        """
+        self.operation = operation
+        if operation:
+            details = details or {}
+            details["operation"] = operation
+        super().__init__(message, details)
+
+
+class ResourceLimitError(MCPException):
+    """Resource limit errors.
+
+    Raised when operation exceeds resource limits (memory, CPU, etc.).
+    """
+
+    def __init__(
+        self,
+        message: str,
+        limit_type: str = None,
+        limit_value: Any = None,
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        """Initialize with resource limit error details.
+
+        Args:
+            message: Error message
+            limit_type: Type of limit exceeded (memory, cpu, etc.)
+            limit_value: Value of the limit
+            details: Optional additional error details
+        """
+        self.limit_type = limit_type
+        self.limit_value = limit_value
+        if limit_type and limit_value is not None:
+            details = details or {}
+            details["limit_type"] = limit_type
+            details["limit_value"] = limit_value
+        super().__init__(message, details)

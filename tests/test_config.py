@@ -251,3 +251,211 @@ def test_database_config_path_is_directory(tmp_path):
 
     with pytest.raises(ValueError, match="not a file"):
         DatabaseConfig(path=str(directory))
+
+
+def test_database_config_connection_string_validation():
+    """Test connection string validation."""
+    # Valid connection strings
+    valid_strings = [
+        "postgresql://user:pass@localhost:5432/db",
+        "postgres://user:pass@localhost:5432/db",
+        "mysql://user:pass@localhost:3306/db",
+        "sqlite:///path/to/db.sqlite"
+    ]
+    
+    for conn_str in valid_strings:
+        config = DatabaseConfig(path=conn_str)
+        assert config.path == conn_str
+
+    # Invalid connection strings
+    invalid_strings = [
+        "invalid://",
+        "postgresql://",
+        "://user:pass@localhost:5432/db",
+        "postgresql://user:pass@localhost:5432/db://extra"
+    ]
+    
+    for conn_str in invalid_strings:
+        with pytest.raises(ValueError, match="Invalid connection string format"):
+            DatabaseConfig(path=conn_str)
+
+
+def test_database_config_database_type_validation():
+    """Test database type validation."""
+    # Valid types
+    valid_types = ["sqlite", "postgresql", "postgres"]
+    for db_type in valid_types:
+        config = DatabaseConfig(path="test.db", database_type=db_type)
+        assert config.database_type == db_type.lower()
+
+    # Case insensitive
+    config = DatabaseConfig(path="test.db", database_type="SQLITE")
+    assert config.database_type == "sqlite"
+
+    # Invalid type
+    with pytest.raises(ValueError, match="Unsupported database type"):
+        DatabaseConfig(path="test.db", database_type="mysql")
+
+
+def test_database_config_ssl_mode_validation():
+    """Test SSL mode validation for PostgreSQL."""
+    # Valid SSL modes
+    valid_modes = ["disable", "allow", "prefer", "require", "verify-ca", "verify-full"]
+    for ssl_mode in valid_modes:
+        config = DatabaseConfig(
+            path="postgresql://user:pass@localhost:5432/db",
+            database_type="postgresql",
+            sslmode=ssl_mode
+        )
+        assert config.sslmode == ssl_mode.lower()
+
+    # Case insensitive
+    config = DatabaseConfig(
+        path="postgresql://user:pass@localhost:5432/db",
+        database_type="postgresql",
+        sslmode="REQUIRE"
+    )
+    assert config.sslmode == "require"
+
+    # Invalid SSL mode
+    with pytest.raises(ValueError, match="Invalid SSL mode"):
+        DatabaseConfig(
+            path="postgresql://user:pass@localhost:5432/db",
+            database_type="postgresql",
+            sslmode="invalid"
+        )
+
+
+def test_database_config_postgresql_validation():
+    """Test PostgreSQL-specific validation."""
+    # Valid PostgreSQL config with connection string
+    config = DatabaseConfig(
+        path="postgresql://user:pass@localhost:5432/db",
+        database_type="postgresql"
+    )
+    assert config.database_type == "postgresql"
+
+    # Valid PostgreSQL config with individual parameters
+    config = DatabaseConfig(
+        path="",
+        database_type="postgresql",
+        host="localhost",
+        database="testdb"
+    )
+    assert config.host == "localhost"
+    assert config.database == "testdb"
+
+    # Invalid PostgreSQL config - missing host
+    with pytest.raises(ValueError, match="PostgreSQL host is required"):
+        DatabaseConfig(
+            path="",
+            database_type="postgresql",
+            database="testdb"
+        )
+
+    # Invalid PostgreSQL config - missing database
+    with pytest.raises(ValueError, match="PostgreSQL database name is required"):
+        DatabaseConfig(
+            path="",
+            database_type="postgresql",
+            host="localhost"
+        )
+
+
+def test_database_config_improved_error_messages(tmp_path):
+    """Test improved error messages for missing files."""
+    # Test with directory that exists but file doesn't
+    test_dir = tmp_path / "test_dir"
+    test_dir.mkdir()
+    test_file = test_dir / "nonexistent.db"
+    
+    with pytest.raises(ValueError) as exc_info:
+        DatabaseConfig(path=str(test_file))
+    
+    error_msg = str(exc_info.value)
+    assert "Database file not found" in error_msg
+    assert "Directory exists" in error_msg
+    assert "Available files" in error_msg
+
+    # Test with directory that doesn't exist
+    nonexistent_dir = tmp_path / "nonexistent_dir"
+    nonexistent_file = nonexistent_dir / "test.db"
+    
+    with pytest.raises(ValueError) as exc_info:
+        DatabaseConfig(path=str(nonexistent_file))
+    
+    error_msg = str(exc_info.value)
+    assert "Database file not found" in error_msg
+    assert "Directory does not exist" in error_msg
+    assert "Please check the path" in error_msg
+
+
+def test_database_config_empty_file(tmp_path):
+    """Test that empty files are rejected."""
+    empty_file = tmp_path / "empty.db"
+    empty_file.touch()  # Create empty file
+    
+    with pytest.raises(ValueError, match="Database file is empty"):
+        DatabaseConfig(path=str(empty_file))
+
+
+def test_database_config_port_validation():
+    """Test port validation for PostgreSQL."""
+    # Valid ports
+    valid_ports = [1, 5432, 65535]
+    for port in valid_ports:
+        config = DatabaseConfig(
+            path="",
+            database_type="postgresql",
+            host="localhost",
+            database="testdb",
+            port=port
+        )
+        assert config.port == port
+
+    # Invalid ports
+    invalid_ports = [0, -1, 65536, 70000]
+    for port in invalid_ports:
+        with pytest.raises(ValueError):
+            DatabaseConfig(
+                path="",
+                database_type="postgresql",
+                host="localhost",
+                database="testdb",
+                port=port
+            )
+
+
+def test_database_config_postgresql_defaults():
+    """Test PostgreSQL configuration defaults."""
+    config = DatabaseConfig(
+        path="postgresql://user:pass@localhost:5432/db",
+        database_type="postgresql"
+    )
+    
+    assert config.host == "localhost"  # Default
+    assert config.port == 5432  # Default
+    assert config.database == "simulation"  # Default
+    assert config.sslmode == "prefer"  # Default
+
+
+def test_database_config_sqlite_with_postgresql_fields():
+    """Test that SQLite config ignores PostgreSQL-specific fields."""
+    config = DatabaseConfig(
+        path="test.db",
+        database_type="sqlite",
+        host="should_be_ignored",
+        port=9999,
+        database="should_be_ignored",
+        username="should_be_ignored",
+        password="should_be_ignored",
+        sslmode="should_be_ignored"
+    )
+    
+    # These fields should be set but not validated for SQLite
+    assert config.host == "should_be_ignored"
+    assert config.port == 9999
+    assert config.database == "should_be_ignored"
+    assert config.username == "should_be_ignored"
+    assert config.password == "should_be_ignored"
+    assert config.sslmode == "should_be_ignored"

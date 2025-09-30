@@ -12,10 +12,12 @@ setup(
         "numpy>=1.24.0",
         "python-dotenv>=1.0.0",
         "pyyaml>=6.0",
+        "deepdiff>=6.0.0",
+        "psutil>=5.9.0",
     ],
     entry_points={
         "console_scripts": [
-            "mcp-server=mcp.cli:main",
+            "mcp-server=agentfarm_mcp.cli:main",
         ],
     },
 )

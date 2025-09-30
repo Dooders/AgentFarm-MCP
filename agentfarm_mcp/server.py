@@ -39,6 +39,7 @@ from .tools.query_tools import (
     QueryResourcesTool,
     QueryStatesTool,
 )
+from .tools.health_tools import HealthCheckTool, SystemInfoTool
 from .utils.exceptions import ToolNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -112,6 +113,9 @@ class SimulationMCPServer:
             # Advanced tools
             BuildAgentLineageTool,
             GetAgentLifecycleTool,
+            # Health and monitoring tools
+            HealthCheckTool,
+            SystemInfoTool,
         ]
 
         # Instantiate and register each tool
@@ -241,11 +245,11 @@ class SimulationMCPServer:
         # Tool registry status
         health_info["components"]["tools"] = {
             "registered": len(self._tools),
-            "expected": 23,
+            "expected": 25,  # Updated to include health tools
         }
 
         # Overall health
-        if health_info["components"]["tools"]["registered"] != 23:
+        if health_info["components"]["tools"]["registered"] != 25:
             health_info["status"] = "degraded"
 
         return health_info

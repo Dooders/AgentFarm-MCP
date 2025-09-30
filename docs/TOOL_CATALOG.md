@@ -1,4 +1,4 @@
-# Tool Catalog - All 23 Tools
+# Tool Catalog - All 25 Tools
 
 Quick reference for all available tools with parameters and use cases.
 
@@ -31,6 +31,8 @@ Quick reference for all available tools with parameters and use cases.
 | 21 | compare_generations | Comparison | Evolution tracking |
 | 22 | build_agent_lineage | Advanced | Family trees |
 | 23 | get_agent_lifecycle | Advanced | Complete history |
+| 24 | health_check | Health | Server monitoring |
+| 25 | system_info | Health | System metrics |
 
 ---
 
@@ -73,6 +75,10 @@ Quick reference for all available tools with parameters and use cases.
 → Use `compare_generations` (generation comparison)
 → Use `analyze_reproduction` (reproduction success)
 → Use `build_agent_lineage` (genetic lineages)
+
+### "I want to monitor server health"
+→ Use `health_check` (comprehensive health monitoring)
+→ Use `system_info` (system performance metrics)
 
 ---
 
@@ -438,6 +444,61 @@ tool(status="completed", limit=20)
 
 ---
 
+### Health & Monitoring Tools (2)
+
+#### health_check
+**Purpose:** Comprehensive server health monitoring  
+**Key Parameters:** include_details, timeout_seconds  
+**Returns:** Database, cache, and tool registry health status  
+**Performance:** ~5-50ms (depends on checks)  
+**Cache:** No (real-time monitoring)  
+
+**Health checks performed:**
+- Database connectivity and response time
+- Cache service functionality and statistics
+- Tool registry integrity
+- Server uptime and performance metrics
+
+**When to use:**
+- Production monitoring
+- Debugging server issues
+- Performance monitoring
+- Health status verification
+- Troubleshooting connectivity problems
+
+**Example:**
+```python
+tool(include_details=True, timeout_seconds=10)
+```
+
+#### system_info
+**Purpose:** System information and performance metrics  
+**Key Parameters:** include_performance  
+**Returns:** Server, database, cache, and system information  
+**Performance:** ~2-10ms  
+**Cache:** No (real-time data)  
+
+**Information provided:**
+- Server version and Python version
+- Platform information (OS, architecture)
+- Database configuration and status
+- Cache statistics
+- System performance metrics (CPU, memory, processes)
+
+**When to use:**
+- System diagnostics
+- Performance analysis
+- Configuration verification
+- Resource monitoring
+- Debugging system issues
+
+**Example:**
+```python
+tool(include_performance=True)
+```
+
+---
+
 ## 🎯 Tool Selection Guide
 
 ### Choose By Goal
@@ -460,6 +521,9 @@ tool(status="completed", limit=20)
 **Goal: Study Evolution**
 → `analyze_survival_rates` → `compare_generations` → `build_agent_lineage`
 
+**Goal: Monitor Server Health**
+→ `health_check` → `system_info`
+
 ---
 
 ## ⚡ Performance Guide
@@ -469,6 +533,7 @@ tool(status="completed", limit=20)
 - get_simulation_info
 - analyze_agent_performance
 - compare_generations
+- system_info
 
 ### Medium Queries (10-30ms)
 - query_agents
@@ -476,6 +541,7 @@ tool(status="completed", limit=20)
 - analyze_population_dynamics
 - analyze_survival_rates
 - analyze_resource_efficiency
+- health_check
 
 ### Slower Queries (30-100ms)
 - query_actions (large dataset)
@@ -497,7 +563,7 @@ tool(status="completed", limit=20)
 
 ---
 
-**Total Tools:** 23  
+**Total Tools:** 25  
 **All Tested:** ✅  
 **Performance:** <100ms  
 **Coverage:** 91%
