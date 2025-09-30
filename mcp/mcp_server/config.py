@@ -1,7 +1,6 @@
 """Configuration management for MCP server."""
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -37,9 +36,7 @@ class CacheConfig(BaseModel):
 class ServerConfig(BaseModel):
     """Server configuration."""
 
-    max_result_size: int = Field(
-        10000, ge=100, le=100000, description="Maximum results per query"
-    )
+    max_result_size: int = Field(10000, ge=100, le=100000, description="Maximum results per query")
     default_limit: int = Field(100, ge=10, le=1000, description="Default pagination limit")
     log_level: str = Field("INFO", description="Logging level")
 
@@ -50,9 +47,7 @@ class ServerConfig(BaseModel):
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         v_upper = v.upper()
         if v_upper not in valid_levels:
-            raise ValueError(
-                f"Invalid log level: {v}. Must be one of {', '.join(valid_levels)}"
-            )
+            raise ValueError(f"Invalid log level: {v}. Must be one of {', '.join(valid_levels)}")
         return v_upper
 
 
@@ -64,12 +59,15 @@ class MCPConfig(BaseModel):
     server: ServerConfig = Field(default_factory=ServerConfig)
 
     @classmethod
-    def from_db_path(cls, db_path: str, **kwargs) -> "MCPConfig":
+    def from_db_path(
+        cls, db_path: str, cache: CacheConfig = None, server: ServerConfig = None
+    ) -> "MCPConfig":
         """Create config from database path with optional overrides.
 
         Args:
             db_path: Path to the database file
-            **kwargs: Optional overrides for cache and server config
+            cache: Optional cache configuration override
+            server: Optional server configuration override
 
         Returns:
             MCPConfig instance
@@ -77,10 +75,14 @@ class MCPConfig(BaseModel):
         Example:
             >>> config = MCPConfig.from_db_path(
             ...     "/path/to/db.sqlite",
-            ...     cache={"enabled": False}
+            ...     cache=CacheConfig(enabled=False)
             ... )
         """
-        return cls(database=DatabaseConfig(path=db_path), **kwargs)
+        return cls(
+            database=DatabaseConfig(path=db_path),
+            cache=cache or CacheConfig(),
+            server=server or ServerConfig(),
+        )
 
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "MCPConfig":
@@ -101,7 +103,7 @@ class MCPConfig(BaseModel):
         if not yaml_file.exists():
             raise FileNotFoundError(f"Configuration file not found: {yaml_path}")
 
-        with open(yaml_file) as f:
+        with open(yaml_file, encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         return cls(**data)
@@ -129,6 +131,7 @@ class MCPConfig(BaseModel):
             >>> config = MCPConfig.from_env()
         """
         import os
+
         from dotenv import load_dotenv
 
         load_dotenv()

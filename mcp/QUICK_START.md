@@ -17,7 +17,8 @@ python3 -m mcp_server --db-path /workspace/simulation.db --list-tools
 ```
 
 You should see:
-```
+
+```text
 Available Tools:
 ============================================================
 get_experiment_info
@@ -36,7 +37,8 @@ python3 test_server.py
 ```
 
 You should see:
-```
+
+```text
 Testing MCP Server...
 ============================================================
 1. Initializing server...
@@ -87,11 +89,13 @@ server.close()
 ## Configuration Options
 
 ### Simple (Just DB Path)
+
 ```python
 config = MCPConfig.from_db_path("/path/to/db.sqlite")
 ```
 
 ### With Custom Cache Settings
+
 ```python
 config = MCPConfig.from_db_path(
     "/path/to/db.sqlite",
@@ -100,11 +104,13 @@ config = MCPConfig.from_db_path(
 ```
 
 ### From YAML File
+
 ```python
 config = MCPConfig.from_yaml("config.yaml")
 ```
 
 ### From Environment Variables
+
 ```python
 # Set environment variables first
 config = MCPConfig.from_env()
@@ -134,6 +140,7 @@ python3 -m mcp_server --db-path /workspace/simulation.db --list-tools
 ### Metadata Tools
 
 #### 1. get_simulation_info
+
 Get detailed info about a specific simulation.
 
 ```python
@@ -142,6 +149,7 @@ result = tool(simulation_id="sim_123")
 ```
 
 #### 2. list_simulations
+
 List all simulations with optional filters.
 
 ```python
@@ -158,6 +166,7 @@ result = tool(experiment_id="exp_001", limit=20)
 ```
 
 #### 3. get_experiment_info
+
 Get detailed info about an experiment.
 
 ```python
@@ -166,6 +175,7 @@ result = tool(experiment_id="exp_001")
 ```
 
 #### 4. list_experiments
+
 List all experiments with optional filters.
 
 ```python
@@ -212,6 +222,7 @@ else:
 ## Common Errors
 
 ### SimulationNotFoundError
+
 ```json
 {
   "type": "SimulationNotFoundError",
@@ -220,6 +231,7 @@ else:
 ```
 
 ### ValidationError
+
 ```json
 {
   "type": "ValidationError",
@@ -228,6 +240,7 @@ else:
 ```
 
 ### DatabaseError
+
 ```json
 {
   "type": "DatabaseError",
@@ -243,6 +256,7 @@ else:
 - **After TTL expires**: Executes query again
 
 Check if result came from cache:
+
 ```python
 if result["metadata"]["from_cache"]:
     print("This was cached!")
@@ -258,19 +272,25 @@ if result["metadata"]["from_cache"]:
 ## Troubleshooting
 
 ### Database not found
-```
+
+```text
 DatabaseError: Database file not found: /path/to/db
 ```
+
 **Fix**: Check the path is correct and file exists
 
 ### Import errors
-```
+
+```text
 ModuleNotFoundError: No module named 'mcp_server'
 ```
+
 **Fix**: Run `pip install -e .` from the `/workspace/mcp` directory
 
 ### Slow queries
+
 Check cache stats and enable caching:
+
 ```python
 config = MCPConfig.from_db_path(db_path, cache={"enabled": True})
 ```

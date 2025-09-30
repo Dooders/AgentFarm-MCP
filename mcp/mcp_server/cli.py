@@ -3,7 +3,7 @@
 import argparse
 import sys
 
-from mcp_server.config import MCPConfig
+from mcp_server.config import CacheConfig, MCPConfig
 from mcp_server.server import SimulationMCPServer
 from mcp_server.utils.logging import setup_logging
 
@@ -50,13 +50,9 @@ Examples:
         "--log-file", type=str, help="Optional log file path (logs to stdout if not specified)"
     )
 
-    parser.add_argument(
-        "--no-cache", action="store_true", help="Disable caching"
-    )
+    parser.add_argument("--no-cache", action="store_true", help="Disable caching")
 
-    parser.add_argument(
-        "--list-tools", action="store_true", help="List available tools and exit"
-    )
+    parser.add_argument("--list-tools", action="store_true", help="List available tools and exit")
 
     args = parser.parse_args()
 
@@ -76,7 +72,7 @@ Examples:
 
         # Override cache setting if requested
         if args.no_cache:
-            config.cache.enabled = False
+            config.cache = CacheConfig(enabled=False)
 
         # Create server
         server = SimulationMCPServer(config)
@@ -97,7 +93,7 @@ Examples:
         print(f"\nStarting MCP server with {len(server.list_tools())} tools...")
         print(f"Database: {config.database.path}")
         print(f"Cache: {'enabled' if config.cache.enabled else 'disabled'}")
-        print(f"Log level: {config.server.log_level}")
+        print(f"Log level: {args.log_level}")
         print("\nPress Ctrl+C to stop the server.\n")
 
         server.run()
@@ -105,7 +101,7 @@ Examples:
     except KeyboardInterrupt:
         print("\n\nShutting down server...")
         sys.exit(0)
-    except Exception as e:
+    except (ValueError, FileNotFoundError, OSError) as e:
         print(f"\nError: {e}", file=sys.stderr)
         sys.exit(1)
 

@@ -5,11 +5,11 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, ValidationError as PydanticValidationError
-
 from mcp_server.services.cache_service import CacheService
 from mcp_server.services.database_service import DatabaseService
-from mcp_server.utils.exceptions import DatabaseError, MCPException, ValidationError
+from mcp_server.utils.exceptions import DatabaseError, MCPException
+from pydantic import BaseModel
+from pydantic import ValidationError as PydanticValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -41,19 +41,16 @@ class ToolBase(ABC):
     @abstractmethod
     def name(self) -> str:
         """Tool name for registration and logging."""
-        pass
 
     @property
     @abstractmethod
     def description(self) -> str:
         """Detailed description for LLM consumption."""
-        pass
 
     @property
     @abstractmethod
     def parameters_schema(self) -> type[BaseModel]:
         """Pydantic schema for parameter validation."""
-        pass
 
     @abstractmethod
     def execute(self, **params) -> Any:
@@ -65,7 +62,6 @@ class ToolBase(ABC):
         Returns:
             Tool execution result
         """
-        pass
 
     # Concrete methods
 
@@ -91,11 +87,13 @@ class ToolBase(ABC):
             cached_result = self.cache.get(cache_key)
 
             if cached_result is not None:
-                logger.info(f"Tool {self.name}: Cache hit")
-                return self._format_response(data=cached_result, from_cache=True, execution_time_ms=0)
+                logger.info("Tool %s: Cache hit", self.name)
+                return self._format_response(
+                    data=cached_result, from_cache=True, execution_time_ms=0
+                )
 
             # Execute tool
-            logger.info(f"Tool {self.name}: Executing with params: {params}")
+            logger.info("Tool %s: Executing with params: %s", self.name, params)
             result = self.execute(**validated_params.model_dump())
 
             # Cache result
@@ -109,21 +107,19 @@ class ToolBase(ABC):
             )
 
         except PydanticValidationError as e:
-            logger.warning(f"Tool {self.name}: Validation error: {e}")
+            logger.warning("Tool %s: Validation error: %s", self.name, e)
             return self._format_error("ValidationError", str(e), e.errors())
 
         except DatabaseError as e:
-            logger.error(f"Tool {self.name}: Database error: {e}")
+            logger.error("Tool %s: Database error: %s", self.name, e)
             return self._format_error("DatabaseError", str(e), getattr(e, "details", None))
 
         except MCPException as e:
-            logger.error(f"Tool {self.name}: MCP error: {e}")
-            return self._format_error(
-                type(e).__name__, str(e), getattr(e, "details", None)
-            )
+            logger.error("Tool %s: MCP error: %s", self.name, e)
+            return self._format_error(type(e).__name__, str(e), getattr(e, "details", None))
 
-        except Exception as e:
-            logger.exception(f"Tool {self.name}: Unexpected error: {e}")
+        except (ValueError, TypeError, AttributeError, KeyError, RuntimeError) as e:
+            logger.exception("Tool %s: Unexpected error: %s", self.name, e)
             return self._format_error("UnknownError", str(e))
 
     def _format_response(

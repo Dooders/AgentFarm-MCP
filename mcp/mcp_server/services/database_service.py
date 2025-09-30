@@ -50,9 +50,13 @@ class DatabaseService:
             }
 
             # Create database URL (SQLite-specific for now)
-            # Note: SQLite read-only mode is tricky with SQLAlchemy
-            # For now, we'll rely on application-level read-only enforcement
-            db_url = f"sqlite:///{self.config.path}"
+            # Note: SQLite read-only mode can be enforced via URI with mode=ro
+            if self.config.read_only:
+                # Use SQLite URI format to enforce read-only mode
+                db_url = f"sqlite:///file:{self.config.path}?mode=ro&uri=true"
+                connect_args["uri"] = True
+            else:
+                db_url = f"sqlite:///{self.config.path}"
 
             # Create engine with connection pooling
             self._engine = create_engine(

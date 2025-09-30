@@ -2,14 +2,29 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Protocol
 
 from fastmcp import FastMCP
-
 from mcp_server.config import MCPConfig
 from mcp_server.services.cache_service import CacheService
 from mcp_server.services.database_service import DatabaseService
+from mcp_server.tools.advanced_tools import BuildAgentLineageTool, GetAgentLifecycleTool
+from mcp_server.tools.analysis_tools import (
+    AnalyzeAgentPerformanceTool,
+    AnalyzePopulationDynamicsTool,
+    AnalyzeReproductionTool,
+    AnalyzeResourceEfficiencyTool,
+    AnalyzeSocialPatternsTool,
+    AnalyzeSurvivalRatesTool,
+    IdentifyCriticalEventsTool,
+)
 from mcp_server.tools.base import ToolBase
+from mcp_server.tools.comparison_tools import (
+    CompareGenerationsTool,
+    CompareParametersTool,
+    CompareSimulationsTool,
+    RankConfigurationsTool,
+)
 from mcp_server.tools.metadata_tools import (
     GetExperimentInfoTool,
     GetSimulationInfoTool,
@@ -24,28 +39,19 @@ from mcp_server.tools.query_tools import (
     QueryResourcesTool,
     QueryStatesTool,
 )
-from mcp_server.tools.analysis_tools import (
-    AnalyzeAgentPerformanceTool,
-    AnalyzePopulationDynamicsTool,
-    AnalyzeReproductionTool,
-    AnalyzeResourceEfficiencyTool,
-    AnalyzeSocialPatternsTool,
-    AnalyzeSurvivalRatesTool,
-    IdentifyCriticalEventsTool,
-)
-from mcp_server.tools.comparison_tools import (
-    CompareGenerationsTool,
-    CompareParametersTool,
-    CompareSimulationsTool,
-    RankConfigurationsTool,
-)
-from mcp_server.tools.advanced_tools import (
-    BuildAgentLineageTool,
-    GetAgentLifecycleTool,
-)
 from mcp_server.utils.exceptions import ToolNotFoundError
 
 logger = logging.getLogger(__name__)
+
+
+class ToolProtocol(Protocol):
+    """Protocol for tool objects to ensure type safety."""
+
+    name: str
+    description: str
+    parameters_schema: type
+
+    def __call__(self, **params) -> Dict[str, Any]: ...
 
 
 class SimulationMCPServer:
@@ -116,7 +122,7 @@ class SimulationMCPServer:
             # Register with FastMCP
             self._register_tool_with_mcp(tool)
 
-            logger.info(f"Registered tool: {tool.name}")
+            logger.info("Registered tool: %s", tool.name)
 
     def _register_tool_with_mcp(self, tool: ToolBase):
         """Register a tool with FastMCP.
@@ -124,16 +130,18 @@ class SimulationMCPServer:
         Args:
             tool: Tool instance to register
         """
+
         # Create a uniquely named function for each tool
         # This avoids FastMCP warnings about duplicate tool names
-        def make_tool_wrapper(t):
-            def wrapper(request: t.parameters_schema) -> dict:  # type: ignore
+        def make_tool_wrapper(t: ToolProtocol):
+            def wrapper(request: Any) -> Dict[str, Any]:
                 """Execute the tool."""
                 return t(**request.model_dump())
+
             wrapper.__name__ = t.name
             wrapper.__doc__ = t.description
             return wrapper
-        
+
         tool_wrapper = make_tool_wrapper(tool)
         self.mcp.tool()(tool_wrapper)
 
@@ -189,7 +197,7 @@ class SimulationMCPServer:
         Args:
             **kwargs: Additional arguments for FastMCP.run()
         """
-        logger.info(f"Starting MCP server with {len(self._tools)} tools")
+        logger.info("Starting MCP server with %d tools", len(self._tools))
         self.mcp.run(**kwargs)
 
     def health_check(self) -> Dict[str, Any]:
@@ -215,7 +223,7 @@ class SimulationMCPServer:
 
                 session.execute(text("SELECT 1"))
             health_info["components"]["database"] = "connected"
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError) as e:
             health_info["components"]["database"] = f"error: {str(e)}"
             health_info["status"] = "unhealthy"
 
@@ -227,7 +235,7 @@ class SimulationMCPServer:
                 "size": stats["size"],
                 "hit_rate": stats["hit_rate"],
             }
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError) as e:
             health_info["components"]["cache"] = f"error: {str(e)}"
 
         # Tool registry status

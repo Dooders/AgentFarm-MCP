@@ -1,10 +1,8 @@
 """Analysis tools for advanced simulation data analysis and insights."""
 
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import numpy as np
-from pydantic import BaseModel, Field
-
 from mcp_server.models.database_models import (
     AgentModel,
     ReproductionEventModel,
@@ -13,6 +11,7 @@ from mcp_server.models.database_models import (
 )
 from mcp_server.tools.base import ToolBase
 from mcp_server.utils.exceptions import SimulationNotFoundError
+from pydantic import BaseModel, Field
 
 
 class AnalyzePopulationDynamicsParams(BaseModel):
@@ -26,6 +25,10 @@ class AnalyzePopulationDynamicsParams(BaseModel):
 
 class AnalyzePopulationDynamicsTool(ToolBase):
     """Analyze population dynamics over time."""
+
+    # Chart configuration constants
+    MAX_CHART_DATA_POINTS = 50
+    CHART_HEIGHT = 10
 
     @property
     def name(self) -> str:
@@ -92,10 +95,12 @@ class AnalyzePopulationDynamicsTool(ToolBase):
             peak_step = step_numbers[total_agents.index(peak_population)]
             final_population = total_agents[-1]
             initial_population = total_agents[0]
-            
+
             # Growth rate calculation
             if initial_population > 0:
-                total_growth_rate = ((final_population - initial_population) / initial_population) * 100
+                total_growth_rate = (
+                    (final_population - initial_population) / initial_population
+                ) * 100
             else:
                 total_growth_rate = 0
 
@@ -159,14 +164,14 @@ class AnalyzePopulationDynamicsTool(ToolBase):
             return "No data to chart"
 
         # Sample data if too many points
-        if len(values) > 50:
-            step_size = len(values) // 50
+        if len(values) > self.MAX_CHART_DATA_POINTS:
+            step_size = len(values) // self.MAX_CHART_DATA_POINTS
             steps = steps[::step_size]
             values = values[::step_size]
 
         max_val = max(values)
         min_val = min(values)
-        height = 10
+        height = self.CHART_HEIGHT
 
         chart_lines = []
         chart_lines.append(f"\nPopulation Over Time (Max: {max_val}, Min: {min_val})")
@@ -193,9 +198,7 @@ class AnalyzeSurvivalRatesParams(BaseModel):
     """Parameters for survival rate analysis."""
 
     simulation_id: str = Field(..., description="Simulation ID to analyze")
-    group_by: str = Field(
-        "generation", description="Group by 'generation' or 'agent_type'"
-    )
+    group_by: str = Field("generation", description="Group by 'generation' or 'agent_type'")
 
 
 class AnalyzeSurvivalRatesTool(ToolBase):
@@ -372,9 +375,7 @@ class AnalyzeResourceEfficiencyTool(ToolBase):
             avg_agent_resources = [s.average_agent_resources for s in steps]
             efficiency = [s.resource_efficiency for s in steps if s.resource_efficiency]
             entropy = [
-                s.resource_distribution_entropy
-                for s in steps
-                if s.resource_distribution_entropy
+                s.resource_distribution_entropy for s in steps if s.resource_distribution_entropy
             ]
             consumed = [s.resources_consumed or 0 for s in steps]
 
@@ -603,11 +604,7 @@ class IdentifyCriticalEventsTool(ToolBase):
                     )
 
                 # Detect generation milestones
-                if (
-                    i > 0
-                    and steps[i].current_max_generation
-                    > steps[i - 1].current_max_generation
-                ):
+                if i > 0 and steps[i].current_max_generation > steps[i - 1].current_max_generation:
                     events.append(
                         {
                             "type": "new_generation",
@@ -713,9 +710,7 @@ class AnalyzeSocialPatternsTool(ToolBase):
                 "resource_sharing": {
                     "total_resources_transferred": round(total_resources_shared, 2),
                     "average_per_interaction": (
-                        round(total_resources_shared / len(interactions), 2)
-                        if interactions
-                        else 0
+                        round(total_resources_shared / len(interactions), 2) if interactions else 0
                     ),
                 },
             }

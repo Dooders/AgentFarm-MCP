@@ -1,9 +1,8 @@
 """Unit tests for configuration module."""
 
-import os
-import pytest
 from pathlib import Path
 
+import pytest
 from mcp_server.config import CacheConfig, DatabaseConfig, MCPConfig, ServerConfig
 
 
@@ -127,9 +126,7 @@ def test_mcp_config_from_db_path(test_db_with_data):
 
 def test_mcp_config_from_db_path_with_overrides(test_db_with_data):
     """Test MCP config with overrides."""
-    config = MCPConfig.from_db_path(
-        str(test_db_with_data), cache=CacheConfig(enabled=False)
-    )
+    config = MCPConfig.from_db_path(str(test_db_with_data), cache=CacheConfig(enabled=False))
 
     assert config.cache.enabled is False
     assert config.database.path == str(Path(test_db_with_data).absolute())
