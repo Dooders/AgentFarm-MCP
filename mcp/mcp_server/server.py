@@ -38,6 +38,10 @@ from mcp_server.tools.comparison_tools import (
     CompareSimulationsTool,
     RankConfigurationsTool,
 )
+from mcp_server.tools.advanced_tools import (
+    BuildAgentLineageTool,
+    GetAgentLifecycleTool,
+)
 from mcp_server.utils.exceptions import ToolNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -98,6 +102,9 @@ class SimulationMCPServer:
             CompareParametersTool,
             RankConfigurationsTool,
             CompareGenerationsTool,
+            # Advanced tools
+            BuildAgentLineageTool,
+            GetAgentLifecycleTool,
         ]
 
         # Instantiate and register each tool
