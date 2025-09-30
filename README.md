@@ -279,7 +279,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Issues**: [GitHub Issues](https://github.com/your-org/AgentFarm-MCP/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-org/AgentFarm-MCP/discussions)
 - **Documentation**: [Full Documentation](docs/)
-
----
-
-**Made with ❤️ for the simulation analysis community**
