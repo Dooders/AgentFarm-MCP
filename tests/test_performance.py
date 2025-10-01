@@ -22,9 +22,9 @@ class TestPerformanceBenchmarks:
             assert result["success"], "Query should succeed"
         
         avg_time = sum(timings) / len(timings)
-        p50 = sorted(timings)[50]
-        p95 = sorted(timings)[95]
-        p99 = sorted(timings)[99]
+        p50 = sorted(timings)[49]
+        p95 = sorted(timings)[94]
+        p99 = sorted(timings)[98]
         
         print(f"\nMetadata Query Performance:")
         print(f"  Average: {avg_time:.2f}ms")
@@ -49,7 +49,7 @@ class TestPerformanceBenchmarks:
             assert result["success"]
         
         avg_time = sum(timings) / len(timings)
-        p95 = sorted(timings)[47]  # 95th percentile of 50 samples
+        p95 = sorted(timings)[46]  # 95th percentile of 50 samples
         
         print(f"\nSimple Query Performance:")
         print(f"  Average: {avg_time:.2f}ms")
@@ -258,9 +258,9 @@ class TestPerformanceBenchmarks:
         total_time = time.time() - start_overall
         
         avg_time = sum(timings) / len(timings)
-        p50 = sorted(timings)[500]
-        p95 = sorted(timings)[950]
-        p99 = sorted(timings)[990]
+        p50 = sorted(timings)[499]
+        p95 = sorted(timings)[949]
+        p99 = sorted(timings)[989]
         throughput = num_requests / total_time
         
         print(f"\nSustained Load Performance ({num_requests} requests):")
