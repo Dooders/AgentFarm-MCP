@@ -6,7 +6,7 @@ This module contains models for interactions, reproduction events, and social be
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Index, Integer, String
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -45,7 +45,7 @@ class InteractionModel(Base):
         String(50), nullable=False
     )  # e.g., 'share', 'attack', 'gather', 'reproduce'
     action_type = Column(String(50), nullable=True)
-    details = Column(String, nullable=True)  # JSON column
+    details = Column(JSON, nullable=True)
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
@@ -217,7 +217,7 @@ class SocialInteractionModel(Base):
     recipient_resources_before = Column(Float(precision=6), nullable=True)
     recipient_resources_after = Column(Float(precision=6), nullable=True)
     group_id = Column(String(64), nullable=True)
-    details = Column(String, nullable=True)  # JSON column
+    details = Column(JSON, nullable=True)
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships

@@ -6,7 +6,7 @@ This module contains models for simulations, experiments, and simulation-level m
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Index, Integer, PrimaryKeyConstraint, String
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Index, Integer, PrimaryKeyConstraint, String
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -204,9 +204,9 @@ class ExperimentModel(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
     status = Column(String(50), default="planned")
-    tags = Column(String, nullable=True)  # JSON column
-    variables = Column(String, nullable=True)  # JSON column
-    results_summary = Column(String, nullable=True)  # JSON column
+    tags = Column(JSON, nullable=True)
+    variables = Column(JSON, nullable=True)
+    results_summary = Column(JSON, nullable=True)
     notes = Column(String(4096), nullable=True)
 
     # Relationships
@@ -231,8 +231,8 @@ class Simulation(Base):
     start_time = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     end_time = Column(DateTime, nullable=True)
     status = Column(String(50), default="pending")
-    parameters = Column(String, nullable=False)  # JSON column
-    results_summary = Column(String, nullable=True)  # JSON column
+    parameters = Column(JSON, nullable=False)
+    results_summary = Column(JSON, nullable=True)
     simulation_db_path = Column(String(255), nullable=False)
 
     # Relationships

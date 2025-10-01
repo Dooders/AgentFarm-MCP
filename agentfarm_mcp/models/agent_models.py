@@ -5,7 +5,7 @@ This module contains models for agents, agent states, and agent actions.
 
 from typing import Any, Dict, Optional
 
-from sqlalchemy import Boolean, Column, Float, ForeignKey, Index, Integer, String
+from sqlalchemy import JSON, Boolean, Column, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -77,7 +77,7 @@ class AgentModel(Base):
     starvation_counter = Column(Integer)
     genome_id = Column(String(64))
     generation = Column(Integer)
-    action_weights = Column(String, nullable=True)  # JSON column
+    action_weights = Column(JSON, nullable=True)
 
     # Relationships
     states = relationship("AgentStateModel", back_populates="agent")
@@ -183,20 +183,21 @@ class AgentStateModel(Base):
         super().__init__(**kwargs)
 
     @staticmethod
-    def generate_id(agent_id: str, step_number: int) -> str:
+    def generate_id(agent_id: str, step_number: int, simulation_id: str | None = None) -> str:
         """Generate a unique ID for an agent state.
 
         Args:
             agent_id: Agent identifier
             step_number: Simulation step number
+            simulation_id: Optional simulation identifier
 
         Returns:
             Unique state ID
         """
-        # Centralize via Identity for consistency without instantiation
-        from farm.utils.identity import Identity
-
-        return str(Identity.agent_state_id(agent_id, step_number))
+        # Generate a unique ID by combining components
+        if simulation_id:
+            return f"{simulation_id}:{agent_id}-{step_number}"
+        return f"{agent_id}-{step_number}"
 
     def as_dict(self) -> Dict[str, Any]:
         """Convert agent state to dictionary.

@@ -274,7 +274,7 @@ class RedisCacheService:
         """
         # Sort parameters for consistent hashing
         param_str = json.dumps(params, sort_keys=True, default=str)
-        param_hash = hashlib.md5(param_str.encode()).hexdigest()
+        param_hash = hashlib.sha256(param_str.encode()).hexdigest()
         return f"{tool_name}:{param_hash}"
 
     def close(self) -> None:
