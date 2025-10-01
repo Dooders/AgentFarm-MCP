@@ -1,0 +1,23 @@
+# Development Environment Configuration
+# Copy to config.dev.yaml and customize
+
+database:
+  path: "simulation.db"  # Local SQLite for development
+  database_type: "sqlite"
+  pool_size: 5
+  query_timeout: 30
+  read_only: true
+
+cache:
+  enabled: true
+  backend: "memory"  # Use in-memory cache for dev
+  max_size: 100
+  ttl_seconds: 300
+
+server:
+  max_result_size: 10000
+  default_limit: 100
+  log_level: "DEBUG"
+  environment: "development"
+  structured_logging: true
+  json_logs: false  # Human-readable logs for dev

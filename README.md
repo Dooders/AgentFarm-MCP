@@ -10,15 +10,27 @@ A **Model Context Protocol (MCP) server** that enables LLM agents to query and a
 ## 🚀 Quick Start
 
 ```bash
-# Install
-pip install -e .
+# Install dependencies and setup dev environment
+make setup
 
 # Test it works
-python -m agentfarm_mcp --db-path simulation.db --list-tools
+make test
 
-# Run with Claude Desktop or other MCP client
-python -m agentfarm_mcp --db-path simulation.db
+# Run with development configuration
+make run-dev
 ```
+
+**New to the improved codebase?** See [QUICKSTART_IMPROVEMENTS.md](QUICKSTART_IMPROVEMENTS.md) for the complete guide.
+
+**📚 Recent Improvements:**
+- ✅ Type safety with MyPy
+- ✅ Pre-commit hooks for code quality
+- ✅ Structured logging with context
+- ✅ Redis caching for performance
+- ✅ Modular model structure
+- ✅ Multi-environment support (dev/staging/prod)
+
+See [IMPROVEMENTS.md](IMPROVEMENTS.md) for details.
 
 ## 📊 What It Does
 

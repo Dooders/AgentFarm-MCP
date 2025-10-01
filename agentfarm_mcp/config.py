@@ -129,6 +129,23 @@ class CacheConfig(BaseModel):
     max_size: int = Field(100, ge=0, le=1000, description="Maximum cache entries")
     ttl_seconds: int = Field(300, ge=0, description="Time to live in seconds")
     enabled: bool = Field(True, description="Enable caching")
+    backend: str = Field("memory", description="Cache backend: 'memory' or 'redis'")
+    
+    # Redis-specific settings
+    redis_host: str = Field("localhost", description="Redis host")
+    redis_port: int = Field(6379, ge=1, le=65535, description="Redis port")
+    redis_db: int = Field(0, ge=0, le=15, description="Redis database number")
+    redis_password: str | None = Field(None, description="Redis password")
+    redis_key_prefix: str = Field("mcp:", description="Redis key prefix")
+    
+    @field_validator("backend")
+    @classmethod
+    def validate_backend(cls, v: str) -> str:
+        """Validate cache backend type."""
+        valid_backends = ["memory", "redis"]
+        if v.lower() not in valid_backends:
+            raise ValueError(f"Invalid cache backend: {v}. Must be one of {', '.join(valid_backends)}")
+        return v.lower()
 
 
 class ServerConfig(BaseModel):
@@ -137,6 +154,9 @@ class ServerConfig(BaseModel):
     max_result_size: int = Field(10000, ge=100, le=100000, description="Maximum results per query")
     default_limit: int = Field(100, ge=10, le=1000, description="Default pagination limit")
     log_level: str = Field("INFO", description="Logging level")
+    environment: str = Field("development", description="Environment: development, staging, production")
+    structured_logging: bool = Field(True, description="Use structured logging (structlog)")
+    json_logs: bool = Field(False, description="Output JSON formatted logs")
 
     @field_validator("log_level")
     @classmethod
@@ -147,6 +167,16 @@ class ServerConfig(BaseModel):
         if v_upper not in valid_levels:
             raise ValueError(f"Invalid log level: {v}. Must be one of {', '.join(valid_levels)}")
         return v_upper
+    
+    @field_validator("environment")
+    @classmethod
+    def validate_environment(cls, v: str) -> str:
+        """Validate environment."""
+        valid_envs = ["development", "staging", "production"]
+        v_lower = v.lower()
+        if v_lower not in valid_envs:
+            raise ValueError(f"Invalid environment: {v}. Must be one of {', '.join(valid_envs)}")
+        return v_lower
 
 
 class MCPConfig(BaseModel):
