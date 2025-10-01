@@ -2,7 +2,8 @@
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any
+from functools import wraps
+from typing import Any, Callable
 
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
@@ -10,9 +11,38 @@ from structlog import get_logger
 
 from ..services.cache_service import CacheService
 from ..services.database_service import DatabaseService
-from ..utils.exceptions import DatabaseError, MCPException
+from ..utils.exceptions import DatabaseError, MCPException, SimulationNotFoundError
 
 logger = get_logger(__name__)
+
+
+def requires_simulation(func: Callable) -> Callable:
+    """Decorator to validate that simulation_id exists before executing tool.
+    
+    This decorator reduces duplication by automatically validating simulation existence
+    before tool execution. Tools using this decorator must:
+    1. Have a 'simulation_id' parameter
+    2. Have access to self.db (DatabaseService)
+    
+    Args:
+        func: Tool execute method to wrap
+        
+    Returns:
+        Wrapped function with simulation validation
+        
+    Raises:
+        SimulationNotFoundError: If simulation_id doesn't exist in database
+    """
+    @wraps(func)
+    def wrapper(self, **params):
+        simulation_id = params.get("simulation_id")
+        # Validate if simulation_id is present (not None)
+        # This includes empty strings which should fail validation
+        if "simulation_id" in params:
+            if not self.db.validate_simulation_exists(simulation_id):
+                raise SimulationNotFoundError(simulation_id)
+        return func(self, **params)
+    return wrapper
 
 
 class ToolBase(ABC):
