@@ -1,15 +1,16 @@
-"""Cache service for MCP server."""
+"""In-memory cache service for MCP server."""
 
 import hashlib
 import json
-import logging
 import time
 from collections import OrderedDict
-from typing import Any, Dict, Optional
+from typing import Any
+
+from structlog import get_logger
 
 from ..config import CacheConfig
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class CacheService:
@@ -22,7 +23,7 @@ class CacheService:
     - Configurable size limits
     """
 
-    def __init__(self, config: CacheConfig):
+    def __init__(self, config: CacheConfig) -> None:
         """Initialize cache service.
 
         Args:
@@ -30,12 +31,12 @@ class CacheService:
         """
         self.config = config
         self.enabled = config.enabled
-        self._cache: OrderedDict = OrderedDict()
-        self._timestamps: Dict[str, float] = {}
+        self._cache: OrderedDict[str, Any] = OrderedDict()
+        self._timestamps: dict[str, float] = {}
         self._hits = 0
         self._misses = 0
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get value from cache if valid.
 
         Args:
@@ -70,10 +71,10 @@ class CacheService:
         self._cache.move_to_end(key)
         self._hits += 1
 
-        logger.debug(f"Cache hit: {key}")
+        logger.debug("cache_hit", key=key)
         return self._cache[key]
 
-    def set(self, key: str, value: Any):
+    def set(self, key: str, value: Any) -> None:
         """Set value in cache.
 
         Args:
@@ -90,15 +91,15 @@ class CacheService:
         if len(self._cache) >= self.config.max_size and key not in self._cache:
             oldest_key = next(iter(self._cache))
             self._evict(oldest_key)
-            logger.debug(f"Cache eviction (LRU): {oldest_key}")
+            logger.debug("cache_eviction_lru", key=oldest_key)
 
         self._cache[key] = value
         self._timestamps[key] = time.time()
         self._cache.move_to_end(key)
 
-        logger.debug(f"Cache set: {key}")
+        logger.debug("cache_set", key=key)
 
-    def _evict(self, key: str):
+    def _evict(self, key: str) -> None:
         """Remove key from cache.
 
         Args:
@@ -108,7 +109,7 @@ class CacheService:
             del self._cache[key]
             del self._timestamps[key]
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear entire cache.
 
         Example:
@@ -118,9 +119,9 @@ class CacheService:
         self._timestamps.clear()
         self._hits = 0
         self._misses = 0
-        logger.info("Cache cleared")
+        logger.info("cache_cleared")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics.
 
         Returns:
@@ -159,5 +160,5 @@ class CacheService:
         """
         # Sort parameters for consistent hashing
         param_str = json.dumps(params, sort_keys=True, default=str)
-        param_hash = hashlib.md5(param_str.encode()).hexdigest()
+        param_hash = hashlib.sha256(param_str.encode()).hexdigest()
         return f"{tool_name}:{param_hash}"

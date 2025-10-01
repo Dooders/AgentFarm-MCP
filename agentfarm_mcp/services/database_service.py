@@ -1,12 +1,13 @@
 """Database service for MCP server."""
 
-import logging
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from typing import Any, Callable
+from typing import Any, TypeVar
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
+from structlog import get_logger
 
 from ..config import DatabaseConfig
 from ..models.database_models import Simulation
@@ -19,7 +20,9 @@ from ..utils.exceptions import (
 )
 from .database_url_builder import DatabaseURLBuilderFactory, detect_database_type
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
+T = TypeVar("T")
 
 
 class DatabaseService:
@@ -87,7 +90,7 @@ class DatabaseService:
             ) from exc
 
     @contextmanager
-    def get_session(self) -> Session:
+    def get_session(self) -> Generator[Session, None, None]:
         """Provide a transactional scope for database operations.
 
         Yields:
@@ -108,12 +111,12 @@ class DatabaseService:
                 session.commit()
         except Exception as exc:
             session.rollback()
-            logger.error("Database session error: %s", exc)
+            logger.error("database_session_error", error=str(exc), exc_info=exc)
             raise QueryExecutionError(f"Query execution failed: {exc}") from exc
         finally:
             session.close()
 
-    def execute_query(self, query_func: Callable[[Session], Any]) -> Any:
+    def execute_query(self, query_func: Callable[[Session], T]) -> T:
         """Execute a query function with error handling.
 
         Args:
@@ -127,7 +130,7 @@ class DatabaseService:
             QueryTimeoutError: If query exceeds timeout
 
         Example:
-            >>> def my_query(session):
+            >>> def my_query(session: Session) -> int:
             ...     return session.query(AgentModel).count()
             >>> count = db_service.execute_query(my_query)
         """
@@ -141,7 +144,7 @@ class DatabaseService:
             except QueryTimeoutError:
                 raise
             except Exception as exc:
-                logger.error("Query execution error: %s", exc)
+                logger.error("query_execution_error", error=str(exc), exc_info=exc)
                 raise QueryExecutionError(f"Query failed: {exc}") from exc
 
     def validate_simulation_exists(self, simulation_id: str) -> bool:

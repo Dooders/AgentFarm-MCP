@@ -1,14 +1,15 @@
 """Main MCP server implementation."""
 
-import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastmcp import FastMCP
+from structlog import get_logger
 
 from .config import MCPConfig
 from .services.cache_service import CacheService
 from .services.database_service import DatabaseService
+from .services.redis_cache_service import RedisCacheConfig, RedisCacheService
 from .tools.advanced_tools import BuildAgentLineageTool, GetAgentLifecycleTool
 from .tools.analysis_tools import (
     AnalyzeAgentPerformanceTool,
@@ -43,13 +44,13 @@ from .tools.query_tools import (
 )
 from .utils.exceptions import ToolNotFoundError
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class SimulationMCPServer:
     """Main MCP server for simulation database analysis."""
 
-    def __init__(self, config: MCPConfig):
+    def __init__(self, config: MCPConfig) -> None:
         """Initialize MCP server.
 
         Args:
@@ -57,20 +58,36 @@ class SimulationMCPServer:
         """
         self.config = config
 
-        # Initialize services
+        # Initialize database service
         self.db_service = DatabaseService(config.database)
-        self.cache_service = CacheService(config.cache)
+        
+        # Initialize cache service based on backend
+        if config.cache.backend == "redis":
+            redis_config = RedisCacheConfig(
+                enabled=config.cache.enabled,
+                host=config.cache.redis_host,
+                port=config.cache.redis_port,
+                db=config.cache.redis_db,
+                password=config.cache.redis_password,
+                ttl_seconds=config.cache.ttl_seconds,
+                key_prefix=config.cache.redis_key_prefix,
+            )
+            self.cache_service: CacheService | RedisCacheService = RedisCacheService(redis_config)
+            logger.info("redis_cache_initialized", host=config.cache.redis_host, port=config.cache.redis_port)
+        else:
+            self.cache_service = CacheService(config.cache)
+            logger.info("memory_cache_initialized", max_size=config.cache.max_size)
 
         # Initialize FastMCP
         self.mcp = FastMCP("simulation-analysis")
 
         # Tool registry
-        self._tools: Dict[str, ToolBase] = {}
+        self._tools: dict[str, ToolBase] = {}
 
         # Register all tools
         self._register_tools()
 
-        logger.info("MCP server initialized")
+        logger.info("mcp_server_initialized", tools_count=len(self._tools))
 
     def _register_tools(self):
         """Register all MCP tools."""
@@ -117,9 +134,9 @@ class SimulationMCPServer:
             # Register with FastMCP
             self._register_tool_with_mcp(tool)
 
-            logger.info("Registered tool: %s", tool.name)
+            logger.debug("tool_registered", tool_name=tool.name)
 
-    def _register_tool_with_mcp(self, tool: ToolBase):
+    def _register_tool_with_mcp(self, tool: ToolBase) -> None:
         """Register a tool with FastMCP.
 
         Args:
@@ -182,14 +199,14 @@ class SimulationMCPServer:
         # Register with FastMCP
         self.mcp.tool()(tool_func)
 
-    def get_tool(self, name: str) -> Optional[ToolBase]:
+    def get_tool(self, name: str) -> ToolBase:
         """Get tool by name.
 
         Args:
             name: Tool name
 
         Returns:
-            Tool instance or None
+            Tool instance
 
         Raises:
             ToolNotFoundError: If tool doesn't exist
@@ -199,7 +216,7 @@ class SimulationMCPServer:
             raise ToolNotFoundError(name)
         return tool
 
-    def list_tools(self) -> List[str]:
+    def list_tools(self) -> list[str]:
         """List all registered tools.
 
         Returns:
@@ -207,7 +224,7 @@ class SimulationMCPServer:
         """
         return list(self._tools.keys())
 
-    def get_tool_schemas(self) -> List[Dict]:
+    def get_tool_schemas(self) -> list[dict[str, Any]]:
         """Get schemas for all registered tools.
 
         Returns:
@@ -215,7 +232,7 @@ class SimulationMCPServer:
         """
         return [tool.get_schema() for tool in self._tools.values()]
 
-    def get_cache_stats(self) -> dict:
+    def get_cache_stats(self) -> dict[str, Any]:
         """Get cache statistics.
 
         Returns:
@@ -223,21 +240,21 @@ class SimulationMCPServer:
         """
         return self.cache_service.get_stats()
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         """Clear all cached data."""
         self.cache_service.clear()
-        logger.info("Cache cleared")
+        logger.info("cache_cleared")
 
-    def run(self, **kwargs):
+    def run(self, **kwargs: Any) -> None:
         """Start the MCP server.
 
         Args:
             **kwargs: Additional arguments for FastMCP.run()
         """
-        logger.info("Starting MCP server with %d tools", len(self._tools))
+        logger.info("mcp_server_starting", tools_count=len(self._tools))
         self.mcp.run(**kwargs)
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """Check server health status.
 
         Returns:
@@ -287,7 +304,9 @@ class SimulationMCPServer:
 
         return health_info
 
-    def close(self):
+    def close(self) -> None:
         """Shutdown server and cleanup resources."""
         self.db_service.close()
-        logger.info("MCP server shutdown complete")
+        if hasattr(self.cache_service, 'close'):
+            self.cache_service.close()
+        logger.info("mcp_server_shutdown_complete")

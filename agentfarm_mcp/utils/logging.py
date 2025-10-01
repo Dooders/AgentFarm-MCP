@@ -1,15 +1,26 @@
-"""Logging configuration for MCP server."""
+"""Legacy logging configuration - DEPRECATED.
+
+Use structured_logging module instead for better observability.
+This module is kept for backwards compatibility only.
+"""
 
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
+
+import structlog
+
+from .structured_logging import setup_structured_logging as _setup_structured
 
 
 def setup_logging(
-    log_level: str = "INFO", log_file: Optional[str] = None, format_str: Optional[str] = None
+    log_level: str = "INFO",
+    log_file: str | None = None,
+    format_str: str | None = None,
 ) -> None:
     """Setup logging configuration.
+
+    DEPRECATED: Use structured_logging.setup_structured_logging() instead.
 
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -17,31 +28,20 @@ def setup_logging(
         format_str: Optional custom format string
 
     Example:
-        >>> setup_logging(log_level="DEBUG", log_file="mcp.log")
+        >>> from agentfarm_mcp.utils.structured_logging import setup_structured_logging
+        >>> setup_structured_logging(log_level="DEBUG")
     """
-    if format_str is None:
-        format_str = (
-            "%(asctime)s - %(name)s - %(levelname)s - " "%(filename)s:%(lineno)d - %(message)s"
-        )
-
-    handlers = [logging.StreamHandler(sys.stdout)]
-
-    if log_file:
-        log_path = Path(log_file)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        handlers.append(logging.FileHandler(log_file))
-
-    logging.basicConfig(
-        level=getattr(logging, log_level.upper()), format=format_str, handlers=handlers
+    # Delegate to structured logging with deprecation warning
+    structlog.get_logger(__name__).warning(
+        "setup_logging() is deprecated, use structured_logging.setup_structured_logging()"
     )
-
-    # Suppress noisy loggers
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    _setup_structured(log_level=log_level, log_file=log_file, dev_mode=True)
 
 
 def get_logger(name: str) -> logging.Logger:
     """Get a logger instance.
+
+    DEPRECATED: Use structured_logging.get_structured_logger() instead.
 
     Args:
         name: Logger name (typically __name__)
@@ -50,7 +50,7 @@ def get_logger(name: str) -> logging.Logger:
         Logger instance
 
     Example:
-        >>> logger = get_logger(__name__)
-        >>> logger.info("Message")
+        >>> from agentfarm_mcp.utils.structured_logging import get_structured_logger
+        >>> logger = get_structured_logger(__name__)
     """
     return logging.getLogger(name)

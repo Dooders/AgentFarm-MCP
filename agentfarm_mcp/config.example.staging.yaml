@@ -1,0 +1,34 @@
+# Staging Environment Configuration
+# Copy to config.staging.yaml and customize
+
+database:
+  # PostgreSQL for staging
+  database_type: "postgresql"
+  host: "db.staging.example.com"
+  port: 5432
+  database: "agentfarm_simulations_staging"
+  username: "${DB_USERNAME}"
+  password: "${DB_PASSWORD}"
+  sslmode: "prefer"
+  pool_size: 10
+  query_timeout: 45
+  read_only: true
+
+cache:
+  enabled: true
+  backend: "redis"
+  max_size: 500
+  ttl_seconds: 450
+  redis_host: "redis.staging.example.com"
+  redis_port: 6379
+  redis_db: 0
+  redis_password: "${REDIS_PASSWORD}"
+  redis_key_prefix: "mcp:staging:"
+
+server:
+  max_result_size: 25000
+  default_limit: 100
+  log_level: "INFO"
+  environment: "staging"
+  structured_logging: true
+  json_logs: true
