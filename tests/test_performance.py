@@ -22,9 +22,10 @@ class TestPerformanceBenchmarks:
             assert result["success"], "Query should succeed"
         
         avg_time = sum(timings) / len(timings)
-        p50 = sorted(timings)[49]
-        p95 = sorted(timings)[94]
-        p99 = sorted(timings)[98]
+        sorted_timings = sorted(timings)
+        p50 = sorted_timings[50]  # P50 of 100 samples (50% of 100 = 50)
+        p95 = sorted_timings[95]  # P95 of 100 samples (95% of 100 = 95)
+        p99 = sorted_timings[99]  # P99 of 100 samples (99% of 100 = 99)
         
         print(f"\nMetadata Query Performance:")
         print(f"  Average: {avg_time:.2f}ms")
@@ -49,7 +50,8 @@ class TestPerformanceBenchmarks:
             assert result["success"]
         
         avg_time = sum(timings) / len(timings)
-        p95 = sorted(timings)[46]  # 95th percentile of 50 samples
+        sorted_timings = sorted(timings)
+        p95 = sorted_timings[47]  # P95 of 50 samples (95% of 50 = 47.5, rounded up to 48, zero-indexed is 47)
         
         print(f"\nSimple Query Performance:")
         print(f"  Average: {avg_time:.2f}ms")
@@ -258,9 +260,10 @@ class TestPerformanceBenchmarks:
         total_time = time.time() - start_overall
         
         avg_time = sum(timings) / len(timings)
-        p50 = sorted(timings)[499]
-        p95 = sorted(timings)[949]
-        p99 = sorted(timings)[989]
+        sorted_timings = sorted(timings)
+        p50 = sorted_timings[500]  # P50 of 1000 samples (50% of 1000 = 500)
+        p95 = sorted_timings[950]  # P95 of 1000 samples (95% of 1000 = 950)
+        p99 = sorted_timings[990]  # P99 of 1000 samples (99% of 1000 = 990)
         throughput = num_requests / total_time
         
         print(f"\nSustained Load Performance ({num_requests} requests):")

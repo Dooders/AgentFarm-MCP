@@ -36,8 +36,11 @@ def requires_simulation(func: Callable) -> Callable:
     @wraps(func)
     def wrapper(self, **params):
         simulation_id = params.get("simulation_id")
-        if simulation_id and not self.db.validate_simulation_exists(simulation_id):
-            raise SimulationNotFoundError(simulation_id)
+        # Validate if simulation_id is present (not None)
+        # This includes empty strings which should fail validation
+        if simulation_id is not None:
+            if not self.db.validate_simulation_exists(simulation_id):
+                raise SimulationNotFoundError(simulation_id)
         return func(self, **params)
     return wrapper
 

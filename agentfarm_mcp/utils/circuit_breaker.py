@@ -1,5 +1,6 @@
 """Circuit breaker pattern implementation for fault tolerance."""
 
+import threading
 import time
 from enum import Enum
 from typing import Callable, TypeVar, Any
@@ -22,6 +23,9 @@ class CircuitBreaker:
     
     The circuit breaker pattern prevents repeated attempts to execute operations
     that are likely to fail, allowing the system to recover gracefully.
+    
+    This implementation is **thread-safe** using threading.RLock(), making it
+    suitable for concurrent use in multi-threaded environments like DatabaseService.
     
     States:
     - CLOSED: Normal operation, all requests pass through
@@ -56,6 +60,8 @@ class CircuitBreaker:
         self.success_threshold = success_threshold
         self.name = name
         
+        # Thread-safe state management
+        self._lock = threading.RLock()
         self.failure_count = 0
         self.success_count = 0
         self.last_failure_time: float | None = None
@@ -81,19 +87,20 @@ class CircuitBreaker:
             CircuitOpenError: If circuit is open
             Exception: Any exception from the function
         """
-        # Check current state and act accordingly
-        if self.state == CircuitState.OPEN:
-            # Check if timeout elapsed
-            if self.last_failure_time and time.time() - self.last_failure_time > self.timeout:
-                logger.info("circuit_breaker_half_open", name=self.name)
-                self.state = CircuitState.HALF_OPEN
-                self.success_count = 0
-            else:
-                logger.warning("circuit_breaker_open_reject", name=self.name)
-                raise CircuitOpenError(
-                    f"Circuit breaker '{self.name}' is open. "
-                    f"Retry after {self.timeout}s timeout."
-                )
+        # Check current state and act accordingly (thread-safe)
+        with self._lock:
+            if self.state == CircuitState.OPEN:
+                # Check if timeout elapsed
+                if self.last_failure_time and time.time() - self.last_failure_time > self.timeout:
+                    logger.info("circuit_breaker_half_open", name=self.name)
+                    self.state = CircuitState.HALF_OPEN
+                    self.success_count = 0
+                else:
+                    logger.warning("circuit_breaker_open_reject", name=self.name)
+                    raise CircuitOpenError(
+                        f"Circuit breaker '{self.name}' is open. "
+                        f"Retry after {self.timeout}s timeout."
+                    )
         
         # Execute the function
         try:
@@ -105,76 +112,80 @@ class CircuitBreaker:
             raise
 
     def _on_success(self):
-        """Handle successful execution."""
-        if self.state == CircuitState.HALF_OPEN:
-            self.success_count += 1
-            logger.debug(
-                "circuit_breaker_success_in_half_open",
-                name=self.name,
-                success_count=self.success_count,
-                threshold=self.success_threshold,
-            )
-            
-            if self.success_count >= self.success_threshold:
-                # Enough successes to close circuit
-                logger.info("circuit_breaker_closed", name=self.name)
-                self.state = CircuitState.CLOSED
-                self.failure_count = 0
-                self.success_count = 0
+        """Handle successful execution (thread-safe)."""
+        with self._lock:
+            if self.state == CircuitState.HALF_OPEN:
+                self.success_count += 1
+                logger.debug(
+                    "circuit_breaker_success_in_half_open",
+                    name=self.name,
+                    success_count=self.success_count,
+                    threshold=self.success_threshold,
+                )
                 
-        elif self.state == CircuitState.CLOSED:
-            # Reset failure count on success
-            if self.failure_count > 0:
-                logger.debug("circuit_breaker_reset_failures", name=self.name)
-                self.failure_count = 0
+                if self.success_count >= self.success_threshold:
+                    # Enough successes to close circuit
+                    logger.info("circuit_breaker_closed", name=self.name)
+                    self.state = CircuitState.CLOSED
+                    self.failure_count = 0
+                    self.success_count = 0
+                    
+            elif self.state == CircuitState.CLOSED:
+                # Reset failure count on success
+                if self.failure_count > 0:
+                    logger.debug("circuit_breaker_reset_failures", name=self.name)
+                    self.failure_count = 0
 
     def _on_failure(self):
-        """Handle failed execution."""
-        self.failure_count += 1
-        self.last_failure_time = time.time()
-        
-        logger.warning(
-            "circuit_breaker_failure",
-            name=self.name,
-            failure_count=self.failure_count,
-            threshold=self.failure_threshold,
-            state=self.state.value,
-        )
-        
-        if self.state == CircuitState.HALF_OPEN:
-            # Failure in half-open state -> back to open
-            logger.warning("circuit_breaker_reopened", name=self.name)
-            self.state = CircuitState.OPEN
-            self.success_count = 0
+        """Handle failed execution (thread-safe)."""
+        with self._lock:
+            self.failure_count += 1
+            self.last_failure_time = time.time()
             
-        elif self.failure_count >= self.failure_threshold:
-            # Too many failures -> open circuit
-            logger.error("circuit_breaker_opened", name=self.name)
-            self.state = CircuitState.OPEN
+            logger.warning(
+                "circuit_breaker_failure",
+                name=self.name,
+                failure_count=self.failure_count,
+                threshold=self.failure_threshold,
+                state=self.state.value,
+            )
+            
+            if self.state == CircuitState.HALF_OPEN:
+                # Failure in half-open state -> back to open
+                logger.warning("circuit_breaker_reopened", name=self.name)
+                self.state = CircuitState.OPEN
+                self.success_count = 0
+                
+            elif self.failure_count >= self.failure_threshold:
+                # Too many failures -> open circuit
+                logger.error("circuit_breaker_opened", name=self.name)
+                self.state = CircuitState.OPEN
 
     def reset(self):
-        """Manually reset the circuit breaker to closed state."""
-        logger.info("circuit_breaker_manual_reset", name=self.name)
-        self.state = CircuitState.CLOSED
-        self.failure_count = 0
-        self.success_count = 0
-        self.last_failure_time = None
+        """Manually reset the circuit breaker to closed state (thread-safe)."""
+        with self._lock:
+            logger.info("circuit_breaker_manual_reset", name=self.name)
+            self.state = CircuitState.CLOSED
+            self.failure_count = 0
+            self.success_count = 0
+            self.last_failure_time = None
 
     def get_state(self) -> dict[str, Any]:
-        """Get current circuit breaker state.
+        """Get current circuit breaker state (thread-safe).
         
         Returns:
             Dictionary with state information
         """
-        return {
-            "name": self.name,
-            "state": self.state.value,
-            "failure_count": self.failure_count,
-            "success_count": self.success_count,
-            "last_failure_time": self.last_failure_time,
-            "threshold": self.failure_threshold,
-            "timeout": self.timeout,
-        }
+        with self._lock:
+            return {
+                "name": self.name,
+                "state": self.state.value,
+                "failure_count": self.failure_count,
+                "success_count": self.success_count,
+                "last_failure_time": self.last_failure_time,
+                "threshold": self.failure_threshold,
+                "timeout": self.timeout,
+            }
 
 
 class CircuitOpenError(Exception):
