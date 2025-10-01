@@ -18,6 +18,7 @@ from ..utils.exceptions import (
     QueryTimeoutError,
     SimulationNotFoundError,
 )
+from ..utils.circuit_breaker import CircuitBreaker, CircuitOpenError
 from .database_url_builder import DatabaseURLBuilderFactory, detect_database_type
 
 logger = get_logger(__name__)
@@ -48,6 +49,15 @@ class DatabaseService:
         self.config = config
         self._engine = None
         self._SessionFactory = None
+        
+        # Initialize circuit breaker for fault tolerance
+        self._circuit_breaker = CircuitBreaker(
+            failure_threshold=5,
+            timeout=60,
+            success_threshold=2,
+            name="database_service"
+        )
+        
         self._initialize_engine()
 
     def _initialize_engine(self):
@@ -117,7 +127,7 @@ class DatabaseService:
             session.close()
 
     def execute_query(self, query_func: Callable[[Session], T]) -> T:
-        """Execute a query function with error handling.
+        """Execute a query function with error handling and circuit breaker protection.
 
         Args:
             query_func: Function that takes a session and returns results
@@ -128,24 +138,33 @@ class DatabaseService:
         Raises:
             DatabaseError: If query execution fails
             QueryTimeoutError: If query exceeds timeout
+            CircuitOpenError: If circuit breaker is open
 
         Example:
             >>> def my_query(session: Session) -> int:
             ...     return session.query(AgentModel).count()
             >>> count = db_service.execute_query(my_query)
         """
-        with self.get_session() as session:
-            try:
-                # Note: SQLite doesn't support statement-level timeouts natively
-                # For production with PostgreSQL, you would set statement_timeout here
-                result = query_func(session)
-                return result
+        def execute_with_session():
+            with self.get_session() as session:
+                try:
+                    # Note: SQLite doesn't support statement-level timeouts natively
+                    # For production with PostgreSQL, you would set statement_timeout here
+                    result = query_func(session)
+                    return result
 
-            except QueryTimeoutError:
-                raise
-            except Exception as exc:
-                logger.error("query_execution_error", error=str(exc), exc_info=exc)
-                raise QueryExecutionError(f"Query failed: {exc}") from exc
+                except QueryTimeoutError:
+                    raise
+                except Exception as exc:
+                    logger.error("query_execution_error", error=str(exc), exc_info=exc)
+                    raise QueryExecutionError(f"Query failed: {exc}") from exc
+        
+        # Execute with circuit breaker protection
+        try:
+            return self._circuit_breaker.call(execute_with_session)
+        except CircuitOpenError as e:
+            logger.error("circuit_breaker_rejected_query", error=str(e))
+            raise DatabaseError(f"Database unavailable: {e}") from e
 
     def validate_simulation_exists(self, simulation_id: str) -> bool:
         """Check if simulation exists in database.
@@ -170,6 +189,41 @@ class DatabaseService:
             return self.execute_query(check_exists)
         except DatabaseError:
             return False
+
+    def validate_simulations_exist_batch(self, simulation_ids: list[str]) -> list[str]:
+        """Validate multiple simulations in a single query (more efficient than N queries).
+
+        Args:
+            simulation_ids: List of simulation IDs to validate
+
+        Returns:
+            List of simulation IDs that do NOT exist (empty list if all exist)
+
+        Example:
+            >>> missing = db_service.validate_simulations_exist_batch(["sim_001", "sim_002", "sim_999"])
+            >>> if missing:
+            ...     raise SimulationNotFoundError(missing[0])
+        """
+        if not simulation_ids:
+            return []
+
+        def batch_check(session: Session) -> list[str]:
+            # Query for all simulations that exist
+            existing = (
+                session.query(Simulation.simulation_id)
+                .filter(Simulation.simulation_id.in_(simulation_ids))
+                .all()
+            )
+            existing_ids = {sim.simulation_id for sim in existing}
+            
+            # Return IDs that don't exist
+            return [sim_id for sim_id in simulation_ids if sim_id not in existing_ids]
+
+        try:
+            return self.execute_query(batch_check)
+        except DatabaseError:
+            # If query fails, fall back to assuming all are missing
+            return simulation_ids
 
     def get_simulation(self, simulation_id: str) -> Simulation:
         """Get simulation by ID.
@@ -197,6 +251,22 @@ class DatabaseService:
             return sim
 
         return self.execute_query(get_sim)
+
+    def get_circuit_breaker_state(self) -> dict:
+        """Get current circuit breaker state.
+        
+        Returns:
+            Dictionary with circuit breaker state information
+        """
+        return self._circuit_breaker.get_state()
+    
+    def reset_circuit_breaker(self):
+        """Manually reset the circuit breaker.
+        
+        Use this to force the circuit breaker back to closed state,
+        for example after resolving database issues.
+        """
+        self._circuit_breaker.reset()
 
     def close(self):
         """Close database connections and dispose of engine.
