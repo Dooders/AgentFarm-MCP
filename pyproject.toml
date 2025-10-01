@@ -53,6 +53,10 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --cov=agentfarm_mcp --cov-report=html --cov-report=term"
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "performance: marks tests as performance benchmarks",
+    "slow: marks tests as slow running tests",
+]
 
 [tool.black]
 line-length = 100

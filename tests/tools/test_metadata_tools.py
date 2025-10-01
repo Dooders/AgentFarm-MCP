@@ -138,7 +138,7 @@ def test_get_simulation_info_not_found(get_simulation_info_tool):
     result = get_simulation_info_tool(simulation_id="nonexistent_999")
 
     assert result["success"] is False
-    assert result["error"]["type"] == "DatabaseError"
+    assert result["error"]["type"] == "QueryExecutionError"
     assert "not found" in result["error"]["message"].lower()
 
 
@@ -231,7 +231,7 @@ def test_get_experiment_info_not_found(get_experiment_info_tool):
     result = get_experiment_info_tool(experiment_id="nonexistent_exp_999")
 
     assert result["success"] is False
-    assert result["error"]["type"] == "DatabaseError"
+    assert result["error"]["type"] == "QueryExecutionError"
 
 
 def test_get_experiment_info_includes_simulation_count(get_experiment_info_tool):
