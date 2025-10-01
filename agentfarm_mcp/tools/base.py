@@ -1,17 +1,18 @@
 """Base class for all MCP tools."""
 
-import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
+
+from pydantic import BaseModel
+from pydantic import ValidationError as PydanticValidationError
+from structlog import get_logger
 
 from ..services.cache_service import CacheService
 from ..services.database_service import DatabaseService
 from ..utils.exceptions import DatabaseError, MCPException
-from pydantic import BaseModel
-from pydantic import ValidationError as PydanticValidationError
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ToolBase(ABC):
@@ -25,12 +26,12 @@ class ToolBase(ABC):
     - Logging
     """
 
-    def __init__(self, db_service: DatabaseService, cache_service: CacheService):
+    def __init__(self, db_service: DatabaseService, cache_service: CacheService | Any) -> None:
         """Initialize tool with required services.
 
         Args:
             db_service: Database service instance
-            cache_service: Cache service instance
+            cache_service: Cache service instance (CacheService or RedisCacheService)
         """
         self.db = db_service
         self.cache = cache_service
@@ -53,7 +54,7 @@ class ToolBase(ABC):
         """Pydantic schema for parameter validation."""
 
     @abstractmethod
-    def execute(self, **params) -> Any:
+    def execute(self, **params: Any) -> Any:
         """Execute the tool with validated parameters.
 
         Args:
@@ -65,7 +66,7 @@ class ToolBase(ABC):
 
     # Concrete methods
 
-    def __call__(self, **params) -> Dict[str, Any]:
+    def __call__(self, **params: Any) -> dict[str, Any]:
         """Validate and execute tool with error handling.
 
         This is the main entry point for tool execution.
@@ -87,13 +88,13 @@ class ToolBase(ABC):
             cached_result = self.cache.get(cache_key)
 
             if cached_result is not None:
-                logger.info("Tool %s: Cache hit", self.name)
+                logger.info("tool_cache_hit", tool=self.name)
                 return self._format_response(
                     data=cached_result, from_cache=True, execution_time_ms=0
                 )
 
             # Execute tool
-            logger.info("Tool %s: Executing with params: %s", self.name, params)
+            logger.info("tool_executing", tool=self.name, params=params)
             result = self.execute(**validated_params.model_dump())
 
             # Cache result
@@ -102,29 +103,30 @@ class ToolBase(ABC):
             # Calculate execution time
             execution_time = (datetime.now() - start_time).total_seconds() * 1000
 
+            logger.info("tool_executed", tool=self.name, execution_time_ms=execution_time)
             return self._format_response(
                 data=result, from_cache=False, execution_time_ms=execution_time
             )
 
         except PydanticValidationError as e:
-            logger.warning("Tool %s: Validation error: %s", self.name, e)
+            logger.warning("tool_validation_error", tool=self.name, error=str(e))
             return self._format_error("ValidationError", str(e), e.errors())
 
         except DatabaseError as e:
-            logger.error("Tool %s: Database error: %s", self.name, e)
+            logger.error("tool_database_error", tool=self.name, error=str(e))
             return self._format_error("DatabaseError", str(e), getattr(e, "details", None))
 
         except MCPException as e:
-            logger.error("Tool %s: MCP error: %s", self.name, e)
+            logger.error("tool_mcp_error", tool=self.name, error=str(e), error_type=type(e).__name__)
             return self._format_error(type(e).__name__, str(e), getattr(e, "details", None))
 
         except (ValueError, TypeError, AttributeError, KeyError, RuntimeError) as e:
-            logger.exception("Tool %s: Unexpected error: %s", self.name, e)
+            logger.error("tool_unexpected_error", tool=self.name, error=str(e), exc_info=e)
             return self._format_error("UnknownError", str(e))
 
     def _format_response(
         self, data: Any, from_cache: bool = False, execution_time_ms: float = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Format successful response.
 
         Args:
@@ -148,8 +150,8 @@ class ToolBase(ABC):
         }
 
     def _format_error(
-        self, error_type: str, message: str, details: Optional[Any] = None
-    ) -> Dict[str, Any]:
+        self, error_type: str, message: str, details: Any | None = None
+    ) -> dict[str, Any]:
         """Format error response.
 
         Args:
@@ -160,7 +162,7 @@ class ToolBase(ABC):
         Returns:
             Formatted error response
         """
-        error_dict = {
+        error_dict: dict[str, Any] = {
             "type": error_type,
             "message": message,
         }
@@ -189,7 +191,7 @@ class ToolBase(ABC):
         """
         return CacheService.generate_key(self.name, params.model_dump())
 
-    def get_schema(self) -> Dict[str, Any]:
+    def get_schema(self) -> dict[str, Any]:
         """Get tool schema for MCP registration.
 
         Returns:
