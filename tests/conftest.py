@@ -19,6 +19,7 @@ from agentfarm_mcp.models.database_models import (
     SocialInteractionModel,
     InteractionModel,
 )
+from agentfarm_mcp.server import SimulationMCPServer
 from agentfarm_mcp.services.cache_service import CacheService
 from agentfarm_mcp.services.database_service import DatabaseService
 
@@ -286,3 +287,12 @@ def test_simulation_id():
 def test_agent_id():
     """Return test agent ID."""
     return "agent_000"
+
+
+@pytest.fixture
+def server(mcp_config):
+    """Create MCP server instance for tests."""
+    server = SimulationMCPServer(mcp_config)
+    yield server
+    # Cleanup if needed
+    server.db_service.close()

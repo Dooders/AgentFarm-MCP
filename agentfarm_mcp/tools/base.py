@@ -142,13 +142,13 @@ class ToolBase(ABC):
             logger.warning("tool_validation_error", tool=self.name, error=str(e))
             return self._format_error("ValidationError", str(e), e.errors())
 
-        except DatabaseError as e:
-            logger.error("tool_database_error", tool=self.name, error=str(e))
-            return self._format_error("DatabaseError", str(e), getattr(e, "details", None))
-
         except MCPException as e:
             logger.error("tool_mcp_error", tool=self.name, error=str(e), error_type=type(e).__name__)
             return self._format_error(type(e).__name__, str(e), getattr(e, "details", None))
+
+        except DatabaseError as e:
+            logger.error("tool_database_error", tool=self.name, error=str(e))
+            return self._format_error("DatabaseError", str(e), getattr(e, "details", None))
 
         except (ValueError, TypeError, AttributeError, KeyError, RuntimeError) as e:
             logger.error("tool_unexpected_error", tool=self.name, error=str(e), exc_info=e)

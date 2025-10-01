@@ -140,6 +140,7 @@ class CacheService:
             "max_size": self.config.max_size,
             "hits": self._hits,
             "misses": self._misses,
+            "total_requests": total_requests,
             "hit_rate": hit_rate,
             "ttl_seconds": self.config.ttl_seconds,
         }

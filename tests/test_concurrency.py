@@ -38,7 +38,7 @@ class TestConcurrency:
         tools = [
             ("query_agents", {"simulation_id": test_simulation_id, "limit": 10}),
             ("get_simulation_info", {"simulation_id": test_simulation_id}),
-            ("query_simulation_steps", {"simulation_id": test_simulation_id, "limit": 10}),
+            ("get_simulation_metrics", {"simulation_id": test_simulation_id, "limit": 10}),
             ("analyze_population_dynamics", {"simulation_id": test_simulation_id}),
         ]
         
