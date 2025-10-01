@@ -9,9 +9,15 @@ from ..models.database_models import (
     SimulationStepModel,
     SocialInteractionModel,
 )
-from .base import ToolBase
+from .base import ToolBase, requires_simulation
 from ..utils.exceptions import SimulationNotFoundError
 from pydantic import BaseModel, Field
+
+
+# Module-level constants for event detection and thresholds
+MASS_DEATH_THRESHOLD = 10  # >10 deaths in a single step = mass death event
+SEVERE_MASS_DEATH_THRESHOLD = 20  # >20 deaths = severe mass death event
+SEVERE_POPULATION_CHANGE_THRESHOLD = 30  # >30% change = high severity event
 
 
 class AnalyzePopulationDynamicsParams(BaseModel):
@@ -58,11 +64,9 @@ class AnalyzePopulationDynamicsTool(ToolBase):
     def parameters_schema(self):
         return AnalyzePopulationDynamicsParams
 
+    @requires_simulation
     def execute(self, **params):
         """Execute population dynamics analysis."""
-        if not self.db.validate_simulation_exists(params["simulation_id"]):
-            raise SimulationNotFoundError(params["simulation_id"])
-
         def query_func(session):
             # Build query for simulation steps
             query = session.query(SimulationStepModel).filter(
@@ -579,7 +583,7 @@ class IdentifyCriticalEventsTool(ToolBase):
                                 "type": "population_crash",
                                 "step": steps[i].step_number,
                                 "description": f"Population dropped {abs(change_percent):.1f}% ({prev_pop} → {curr_pop})",
-                                "severity": "high" if abs(change_percent) > 30 else "medium",
+                                "severity": "high" if abs(change_percent) > SEVERE_POPULATION_CHANGE_THRESHOLD else "medium",
                             }
                         )
                     elif change_percent >= threshold:
@@ -593,13 +597,13 @@ class IdentifyCriticalEventsTool(ToolBase):
                         )
 
                 # Detect mass death events
-                if steps[i].deaths > 10:  # Arbitrary threshold
+                if steps[i].deaths > MASS_DEATH_THRESHOLD:
                     events.append(
                         {
                             "type": "mass_death",
                             "step": steps[i].step_number,
                             "description": f"{steps[i].deaths} deaths in single step",
-                            "severity": "high" if steps[i].deaths > 20 else "medium",
+                            "severity": "high" if steps[i].deaths > SEVERE_MASS_DEATH_THRESHOLD else "medium",
                         }
                     )
 
