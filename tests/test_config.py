@@ -203,8 +203,11 @@ def test_mcp_config_from_env_missing_db_path(monkeypatch):
     """Test that from_env requires DB_PATH."""
     monkeypatch.delenv("DB_PATH", raising=False)
 
-    with pytest.raises(ValueError, match="DB_PATH environment variable is required"):
-        MCPConfig.from_env()
+    # Mock load_dotenv to prevent loading .env file
+    from unittest.mock import patch
+    with patch('dotenv.load_dotenv'):
+        with pytest.raises(ValueError, match="DB_PATH environment variable is required"):
+            MCPConfig.from_env()
 
 
 def test_mcp_config_from_env_bool_parsing(test_db_with_data, monkeypatch):
