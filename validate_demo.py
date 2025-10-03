@@ -20,7 +20,7 @@ def check_file_exists(filepath: str, description: str) -> bool:
 def check_python_syntax(filepath: str) -> bool:
     """Check Python file syntax."""
     try:
-        with open(filepath, 'r') as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             ast.parse(f.read())
         print(f"✅ Valid Python syntax: {filepath}")
         return True
@@ -74,7 +74,7 @@ def main():
     # Check environment
     print("🔧 Checking environment...")
     if check_file_exists(".env", "Environment file"):
-        with open(".env", 'r') as f:
+        with open(".env", 'r', encoding='utf-8') as f:
             content = f.read()
             if "ANTHROPIC_API_KEY" in content:
                 if "your_anthropic_api_key_here" in content:
