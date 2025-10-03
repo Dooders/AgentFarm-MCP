@@ -420,63 +420,78 @@ def chat_with_agent(user_message: str) -> tuple[str, List[Dict[str, Any]]]:
 # Sidebar
 with st.sidebar:
     st.title("🤖 MCP Server Demo")
-    st.markdown("---")
-    
-    # Server info
+
+    # Precompute server health once for all tabs
     server = st.session_state.mcp_server
     health = server.health_check()
-    
-    st.subheader("Server Status")
-    status_color = "🟢" if health["status"] == "healthy" else "🔴"
-    st.write(f"{status_color} {health['status'].upper()}")
-    
-    # Database info
-    db_status = health["components"].get("database", "unknown")
-    st.write(f"**Database:** {db_status}")
-    
-    # Cache info
-    cache_info = health["components"].get("cache", {})
-    if isinstance(cache_info, dict):
-        st.write(f"**Cache:** Enabled ({cache_info.get('size', 0)} entries)")
-        st.write(f"**Hit Rate:** {cache_info.get('hit_rate', 0):.1%}")
-    
-    # Tools info
-    tools_info = health["components"].get("tools", {})
-    st.write(f"**Tools:** {tools_info.get('registered', 0)}/{tools_info.get('expected', 25)}")
-    
-    st.markdown("---")
-    
-    # Example queries
-    st.subheader("💡 Example Queries")
-    
-    example_queries = [
-        "List all available simulations",
-        "What's the population growth rate in the latest simulation?",
-        "Show me the top 5 agents that survived the longest",
-        "Analyze population dynamics and show a chart",
-        "What were the critical events in the simulation?",
-        "Compare survival rates by generation",
-    ]
-    
-    for query in example_queries:
-        if st.button(query, key=f"example_{query}", use_container_width=True):
-            st.session_state.example_query = query
-    
-    st.markdown("---")
-    
-    # Clear chat
-    if st.button("🗑️ Clear Chat", use_container_width=True):
-        st.session_state.messages = []
-        st.rerun()
-    
-    st.markdown("---")
-    st.markdown("**Available Tools:** 25")
-    st.markdown("- Metadata: 4")
-    st.markdown("- Query: 6")
-    st.markdown("- Analysis: 7")
-    st.markdown("- Comparison: 4")
-    st.markdown("- Advanced: 2")
-    st.markdown("- Health: 2")
+
+    # Persist current tab selection across reruns using a simple radio (hidden)
+    if "sidebar_active_tab" not in st.session_state:
+        st.session_state.sidebar_active_tab = "Tools"
+
+    tabs = ["Tools", "Data", "Settings"]
+    # Render tabs and keep track of active tab index by name
+    tools_tab, data_tab, settings_tab = st.tabs(tabs)
+
+    with tools_tab:
+        st.subheader("💡 Example Queries")
+        with st.form(key="example_queries_form", clear_on_submit=False):
+            with st.expander("Examples", expanded=st.session_state.get("exp_examples", False)):
+                example_queries = [
+                    "List all available simulations",
+                    "What's the population growth rate in the latest simulation?",
+                    "Show me the top 5 agents that survived the longest",
+                    "Analyze population dynamics and show a chart",
+                    "What were the critical events in the simulation?",
+                    "Compare survival rates by generation",
+                ]
+                selected_query = st.selectbox(
+                    "Choose an example",
+                    example_queries,
+                    index=None,
+                    placeholder="Select an example query",
+                    key="selected_example_query",
+                )
+            submitted = st.form_submit_button("Run Example", use_container_width=True)
+            if submitted and selected_query:
+                st.session_state.example_query = selected_query
+
+        with st.expander("Tool Categories", expanded=st.session_state.get("exp_tool_categories", False)):
+            st.markdown("**Available Tools:** 25")
+            st.markdown("- Metadata: 4")
+            st.markdown("- Query: 6")
+            st.markdown("- Analysis: 7")
+            st.markdown("- Comparison: 4")
+            st.markdown("- Advanced: 2")
+            st.markdown("- Health: 2")
+
+    with data_tab:
+        st.subheader("Server & Data")
+        status_color = "🟢" if health["status"] == "healthy" else "🔴"
+        st.write(f"{status_color} {health['status'].upper()}")
+
+        db_status = health["components"].get("database", "unknown")
+        st.write(f"**Database:** {db_status}")
+
+        cache_info = health["components"].get("cache", {})
+        if isinstance(cache_info, dict):
+            st.write(f"**Cache:** Enabled ({cache_info.get('size', 0)} entries)")
+            st.write(f"**Hit Rate:** {cache_info.get('hit_rate', 0):.1%}")
+
+        tools_info = health["components"].get("tools", {})
+        st.write(f"**Tools Registered:** {tools_info.get('registered', 0)}/{tools_info.get('expected', 25)}")
+
+    with settings_tab:
+        st.subheader("Actions")
+        with st.form(key="actions_form"):
+            clear = st.form_submit_button("🗑️ Clear Chat", use_container_width=True)
+            if clear:
+                st.session_state.messages = []
+                st.rerun()
+
+        with st.expander("Preferences", expanded=False):
+            st.checkbox("Expand 'Examples' by default", key="exp_examples")
+            st.checkbox("Expand 'Tool Categories' by default", key="exp_tool_categories")
 
 
 # Main content
