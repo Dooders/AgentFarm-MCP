@@ -20,6 +20,8 @@ make test
 make run-dev
 ```
 
+**🎨 Try the Interactive Demo!** See [STREAMLIT_DEMO_README.md](STREAMLIT_DEMO_README.md) for a beautiful chat interface to explore the MCP server.
+
 **New to the improved codebase?** See [QUICKSTART_IMPROVEMENTS.md](QUICKSTART_IMPROVEMENTS.md) for the complete guide.
 
 **📚 Recent Improvements:**
@@ -31,6 +33,14 @@ make run-dev
 - ✅ Multi-environment support (dev/staging/prod)
 
 See [IMPROVEMENTS.md](IMPROVEMENTS.md) for details.
+
+## 🎨 Interactive Demo Available!
+
+**Try the Streamlit Demo App!** A beautiful chat interface with Claude AI to explore all MCP server capabilities.
+
+👉 **[Get Started with the Demo →](DEMO_INDEX.md)** | **[Quick Start (5 min) →](DEMO_QUICKSTART.md)**
+
+![Demo Features](https://img.shields.io/badge/Demo-Chat_Interface-blue) ![LLM](https://img.shields.io/badge/LLM-Claude_3.5-purple) ![Visualization](https://img.shields.io/badge/Charts-Plotly-orange)
 
 ## 📊 What It Does
 
