@@ -20,6 +20,8 @@ make test
 make run-dev
 ```
 
+**🎨 Try the Interactive Demo!** See [STREAMLIT_DEMO_README.md](STREAMLIT_DEMO_README.md) for a beautiful chat interface to explore the MCP server.
+
 **New to the improved codebase?** See [QUICKSTART_IMPROVEMENTS.md](QUICKSTART_IMPROVEMENTS.md) for the complete guide.
 
 **📚 Recent Improvements:**
@@ -31,6 +33,17 @@ make run-dev
 - ✅ Multi-environment support (dev/staging/prod)
 
 See [IMPROVEMENTS.md](IMPROVEMENTS.md) for details.
+
+## 🎨 Interactive Demo
+
+**Streamlit Demo App** - Chat interface with Claude AI to explore the MCP server.
+
+👉 **[Demo Setup & Usage →](DEMO_README.md)**
+
+```bash
+pip install -r requirements-streamlit.txt
+streamlit run streamlit_demo.py
+```
 
 ## 📊 What It Does
 
