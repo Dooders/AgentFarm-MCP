@@ -343,7 +343,7 @@ def chat_with_agent(user_message: str) -> tuple[str, List[Dict[str, Any]]]:
         
         # Call Claude
         response = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-3-haiku-20240307",
             max_tokens=4096,
             tools=tools,
             messages=messages,
