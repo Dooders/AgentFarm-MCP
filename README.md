@@ -34,13 +34,16 @@ make run-dev
 
 See [IMPROVEMENTS.md](IMPROVEMENTS.md) for details.
 
-## 🎨 Interactive Demo Available!
+## 🎨 Interactive Demo
 
-**Try the Streamlit Demo App!** A beautiful chat interface with Claude AI to explore all MCP server capabilities.
+**Streamlit Demo App** - Chat interface with Claude AI to explore the MCP server.
 
-👉 **[Get Started with the Demo →](DEMO_INDEX.md)** | **[Quick Start (5 min) →](DEMO_QUICKSTART.md)**
+👉 **[Demo Setup & Usage →](DEMO_README.md)**
 
-![Demo Features](https://img.shields.io/badge/Demo-Chat_Interface-blue) ![LLM](https://img.shields.io/badge/LLM-Claude_3.5-purple) ![Visualization](https://img.shields.io/badge/Charts-Plotly-orange)
+```bash
+pip install -r requirements-streamlit.txt
+streamlit run streamlit_demo.py
+```
 
 ## 📊 What It Does
 
