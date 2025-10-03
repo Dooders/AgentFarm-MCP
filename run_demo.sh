@@ -13,7 +13,12 @@ if [ ! -f .env ]; then
 fi
 
 # Check if ANTHROPIC_API_KEY is set
-source .env
+# Securely parse .env file without executing it as shell script
+if [ -f .env ]; then
+    # Extract ANTHROPIC_API_KEY value safely
+    ANTHROPIC_API_KEY=$(grep "^ANTHROPIC_API_KEY=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+fi
+
 if [ -z "$ANTHROPIC_API_KEY" ] || [ "$ANTHROPIC_API_KEY" = "your_anthropic_api_key_here" ]; then
     echo "❌ Error: ANTHROPIC_API_KEY not configured"
     echo ""

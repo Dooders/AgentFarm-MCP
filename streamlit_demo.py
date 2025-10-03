@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional
 
 import anthropic
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from dotenv import load_dotenv
@@ -158,7 +157,7 @@ def format_tool_result(tool_name: str, result: Dict[str, Any]) -> str:
             formatted += f"📊 Found {len(data['simulations'])} simulations\n"
         elif "population_summary" in data:
             summary = data["population_summary"]
-            formatted += f"📈 Population Analysis:\n"
+            formatted += "📈 Population Analysis:\n"
             formatted += f"- Growth Rate: {summary.get('total_growth_rate_percent', 0):.1f}%\n"
             formatted += f"- Peak: {summary.get('peak_population', 0)} agents\n"
         elif "summary" in data:
@@ -243,6 +242,82 @@ def visualize_agent_data(data: Dict[str, Any]) -> Optional[pd.DataFrame]:
     return df[available_cols] if available_cols else df
 
 
+def render_tool_results(tool_results: List[Dict[str, Any]]) -> None:
+    """Render tool results with visualizations and data display."""
+    if not tool_results:
+        return
+    
+    for tool_result in tool_results:
+        with st.expander(f"🔧 Tool: {tool_result['name']}", expanded=False):
+            st.json(tool_result["input"], expanded=False)
+            
+            result = tool_result["result"]
+            if result.get("success"):
+                st.success(f"✅ Success ({result['metadata']['execution_time_ms']:.1f}ms)")
+                
+                # Visualizations
+                if tool_result["name"] == "analyze_population_dynamics":
+                    fig = visualize_population_data(result.get("data", {}))
+                    if fig:
+                        st.plotly_chart(fig, use_container_width=True)
+                
+                if "agents" in result.get("data", {}):
+                    df = visualize_agent_data(result.get("data", {}))
+                    if df is not None and not df.empty:
+                        st.dataframe(df, use_container_width=True)
+                
+                # JSON data
+                st.json(result.get("data", {}), expanded=False)
+            else:
+                st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+
+
+def display_chat_message(message: Dict[str, Any]) -> None:
+    """Display a single chat message with optional tool results."""
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+        
+        # Display tool results if present
+        if "tool_results" in message:
+            render_tool_results(message["tool_results"])
+
+
+def display_and_process_message(role: str, content: str, tool_results: Optional[List[Dict[str, Any]]] = None) -> None:
+    """Display a message in the chat interface and optionally add to history."""
+    with st.chat_message(role):
+        st.markdown(content)
+        
+        # Display tool results if present
+        if tool_results:
+            render_tool_results(tool_results)
+
+
+def add_message_to_history(role: str, content: str, tool_results: Optional[List[Dict[str, Any]]] = None) -> None:
+    """Add a message to chat history with consistent structure."""
+    message = {"role": role, "content": content}
+    if tool_results is not None:
+        message["tool_results"] = tool_results
+    st.session_state.messages.append(message)
+
+
+def handle_user_query(user_input: str) -> None:
+    """Unified handler for all user queries (example queries and new input)."""
+    # Add user message to history and display it
+    add_message_to_history("user", user_input)
+    
+    # Get AI response
+    with st.spinner("Thinking..."):
+        response_text, tool_results = chat_with_agent(user_input)
+    
+    # Display assistant response
+    display_and_process_message("assistant", response_text, tool_results)
+    
+    # Add assistant response to history
+    add_message_to_history("assistant", response_text, tool_results)
+    
+    st.rerun()
+
+
 def chat_with_agent(user_message: str) -> tuple[str, List[Dict[str, Any]]]:
     """Send message to LLM agent and get response with tool calls."""
     client = st.session_state.anthropic_client
@@ -320,6 +395,26 @@ def chat_with_agent(user_message: str) -> tuple[str, List[Dict[str, Any]]]:
             # Unexpected stop reason
             break
     
+    # Handle cases where we don't get a proper response
+    if not response_text.strip():
+        if tool_results:
+            # We have tool results but no explanation - provide a summary
+            response_text = f"I've analyzed your request using {len(tool_results)} tool(s). Here's what I found:\n\n"
+            for i, tool_result in enumerate(tool_results, 1):
+                tool_name = tool_result['name']
+                result = tool_result['result']
+                if result.get('success'):
+                    response_text += f"{i}. **{tool_name}**: Successfully executed and returned data.\n"
+                else:
+                    response_text += f"{i}. **{tool_name}**: Failed with error: {result.get('error', 'Unknown error')}\n"
+            response_text += "\nPlease check the tool results below for detailed information."
+        elif iteration >= max_iterations:
+            # Hit max iterations without completion
+            response_text = f"I apologize, but I reached the maximum number of processing steps ({max_iterations}) while trying to answer your question. This might indicate a complex query that requires more analysis or there may be an issue with the available tools.\n\nPlease try:\n- Breaking down your question into smaller parts\n- Being more specific about what you're looking for\n- Checking if the simulation data is available"
+        else:
+            # No tool results and didn't hit max iterations - unexpected case
+            response_text = "I apologize, but I encountered an issue while processing your request. Please try rephrasing your question or check if the simulation data is available."
+    
     return response_text, tool_results
 
 
@@ -391,134 +486,14 @@ st.markdown("Ask questions about your simulation data using natural language!")
 
 # Display chat messages
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-        
-        # Display tool results if present
-        if "tool_results" in message:
-            for tool_result in message["tool_results"]:
-                with st.expander(f"🔧 Tool: {tool_result['name']}", expanded=False):
-                    st.json(tool_result["input"], expanded=False)
-                    
-                    result = tool_result["result"]
-                    if result.get("success"):
-                        st.success(f"✅ Success ({result['metadata']['execution_time_ms']:.1f}ms)")
-                        
-                        # Visualizations
-                        if tool_result["name"] == "analyze_population_dynamics":
-                            fig = visualize_population_data(result.get("data", {}))
-                            if fig:
-                                st.plotly_chart(fig, use_container_width=True)
-                        
-                        if "agents" in result.get("data", {}):
-                            df = visualize_agent_data(result.get("data", {}))
-                            if df is not None and not df.empty:
-                                st.dataframe(df, use_container_width=True)
-                        
-                        # JSON data
-                        st.json(result.get("data", {}), expanded=False)
-                    else:
-                        st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
+    display_chat_message(message)
 
 # Handle example query
 if hasattr(st.session_state, "example_query"):
     user_input = st.session_state.example_query
     del st.session_state.example_query
-    
-    # Add user message
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    
-    with st.chat_message("user"):
-        st.markdown(user_input)
-    
-    # Get AI response
-    with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            response_text, tool_results = chat_with_agent(user_input)
-        
-        st.markdown(response_text)
-        
-        # Display tool results
-        if tool_results:
-            for tool_result in tool_results:
-                with st.expander(f"🔧 Tool: {tool_result['name']}", expanded=False):
-                    st.json(tool_result["input"], expanded=False)
-                    
-                    result = tool_result["result"]
-                    if result.get("success"):
-                        st.success(f"✅ Success ({result['metadata']['execution_time_ms']:.1f}ms)")
-                        
-                        # Visualizations
-                        if tool_result["name"] == "analyze_population_dynamics":
-                            fig = visualize_population_data(result.get("data", {}))
-                            if fig:
-                                st.plotly_chart(fig, use_container_width=True)
-                        
-                        if "agents" in result.get("data", {}):
-                            df = visualize_agent_data(result.get("data", {}))
-                            if df is not None and not df.empty:
-                                st.dataframe(df, use_container_width=True)
-                        
-                        # JSON data
-                        st.json(result.get("data", {}), expanded=False)
-                    else:
-                        st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
-    
-    # Add assistant response to history
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": response_text,
-        "tool_results": tool_results,
-    })
-    
-    st.rerun()
+    handle_user_query(user_input)
 
 # Chat input
 if user_input := st.chat_input("Ask about your simulation data..."):
-    # Add user message
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    
-    with st.chat_message("user"):
-        st.markdown(user_input)
-    
-    # Get AI response
-    with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            response_text, tool_results = chat_with_agent(user_input)
-        
-        st.markdown(response_text)
-        
-        # Display tool results
-        if tool_results:
-            for tool_result in tool_results:
-                with st.expander(f"🔧 Tool: {tool_result['name']}", expanded=False):
-                    st.json(tool_result["input"], expanded=False)
-                    
-                    result = tool_result["result"]
-                    if result.get("success"):
-                        st.success(f"✅ Success ({result['metadata']['execution_time_ms']:.1f}ms)")
-                        
-                        # Visualizations
-                        if tool_result["name"] == "analyze_population_dynamics":
-                            fig = visualize_population_data(result.get("data", {}))
-                            if fig:
-                                st.plotly_chart(fig, use_container_width=True)
-                        
-                        if "agents" in result.get("data", {}):
-                            df = visualize_agent_data(result.get("data", {}))
-                            if df is not None and not df.empty:
-                                st.dataframe(df, use_container_width=True)
-                        
-                        # JSON data
-                        st.json(result.get("data", {}), expanded=False)
-                    else:
-                        st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
-    
-    # Add assistant response to history
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": response_text,
-        "tool_results": tool_results,
-    })
-    
-    st.rerun()
+    handle_user_query(user_input)
