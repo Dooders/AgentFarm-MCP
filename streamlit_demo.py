@@ -302,17 +302,16 @@ def add_message_to_history(role: str, content: str, tool_results: Optional[List[
 
 def handle_user_query(user_input: str) -> None:
     """Unified handler for all user queries (example queries and new input)."""
-    # Add user message to history and display it
-    add_message_to_history("user", user_input)
+    # Display user message immediately
+    display_and_process_message("user", user_input)
     
-    # Get AI response
+    # Get AI response (this will add user message to history internally)
     with st.spinner("Thinking..."):
         response_text, tool_results = chat_with_agent(user_input)
     
-    # Display assistant response
+    # Display assistant response and add both messages to history
     display_and_process_message("assistant", response_text, tool_results)
-    
-    # Add assistant response to history
+    add_message_to_history("user", user_input)
     add_message_to_history("assistant", response_text, tool_results)
     
     st.rerun()

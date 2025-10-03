@@ -17,6 +17,8 @@ fi
 if [ -f .env ]; then
     # Extract ANTHROPIC_API_KEY value safely
     ANTHROPIC_API_KEY=$(grep "^ANTHROPIC_API_KEY=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    # Extract DB_PATH value safely
+    DB_PATH=$(grep "^DB_PATH=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'")
 fi
 
 if [ -z "$ANTHROPIC_API_KEY" ] || [ "$ANTHROPIC_API_KEY" = "your_anthropic_api_key_here" ]; then
