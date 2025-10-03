@@ -20,7 +20,7 @@ make test
 make run-dev
 ```
 
-**🎨 Try the Interactive Demo!** See [STREAMLIT_DEMO_README.md](STREAMLIT_DEMO_README.md) for a beautiful chat interface to explore the MCP server.
+**🎨 Try the Interactive Demo!** See [DEMO_README.md](DEMO_README.md) for a beautiful chat interface to explore the MCP server.
 
 **New to the improved codebase?** See [QUICKSTART_IMPROVEMENTS.md](QUICKSTART_IMPROVEMENTS.md) for the complete guide.
 
@@ -41,6 +41,7 @@ See [IMPROVEMENTS.md](IMPROVEMENTS.md) for details.
 👉 **[Demo Setup & Usage →](DEMO_README.md)**
 
 ```bash
+pip install -r requirements.txt
 pip install -r requirements-streamlit.txt
 streamlit run streamlit_demo.py
 ```

@@ -30,8 +30,9 @@ if [ -z "$ANTHROPIC_API_KEY" ] || [ "$ANTHROPIC_API_KEY" = "your_anthropic_api_k
 fi
 
 # Check if database exists
-if [ ! -f "${DB_PATH:-simulation.db}" ]; then
-    echo "❌ Error: Database file not found: ${DB_PATH:-simulation.db}"
+DB_PATH_FROM_ENV=${DB_PATH:-simulation.db}
+if [ ! -f "$DB_PATH_FROM_ENV" ]; then
+    echo "❌ Error: Database file not found: $DB_PATH_FROM_ENV"
     echo ""
     echo "Please ensure the simulation database exists"
     exit 1

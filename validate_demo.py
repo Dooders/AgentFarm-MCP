@@ -43,7 +43,7 @@ def main():
     files_to_check = [
         ("streamlit_demo.py", "Main Streamlit app"),
         ("requirements-streamlit.txt", "Streamlit requirements"),
-        ("STREAMLIT_DEMO_README.md", "Demo README"),
+        ("DEMO_README.md", "Demo README"),
         (".env.example", "Example environment file"),
         ("setup_streamlit_demo.sh", "Setup script"),
     ]

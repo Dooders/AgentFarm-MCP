@@ -6,7 +6,7 @@ Interactive chat interface to demo the MCP Simulation Server with Claude AI.
 
 ```bash
 # 1. Install dependencies
-pip install -r requirements.txt requirements-streamlit.txt
+pip install -r requirements.txt -r requirements-streamlit.txt
 
 # 2. Configure API key
 cp .env.example .env

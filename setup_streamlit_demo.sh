@@ -18,7 +18,7 @@ pip install -q -r requirements.txt
 # Install Streamlit demo dependencies
 echo ""
 echo "📦 Installing Streamlit demo dependencies..."
-pip install -q streamlit>=1.28.0 plotly>=5.17.0 anthropic>=0.21.0
+pip install -q -r requirements-streamlit.txt
 
 # Check for .env file
 echo ""
