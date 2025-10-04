@@ -17,6 +17,13 @@ from ui_helpers import (
     get_total_tool_count,
     get_log_levels,
 )
+from logging_utils import (
+    filter_logs,
+    serialize_logs_text,
+    compute_metrics,
+    append_history,
+    read_history,
+)
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -104,6 +111,12 @@ if "anthropic_client" not in st.session_state:
         st.error("ANTHROPIC_API_KEY environment variable not set!")
         st.stop()
     st.session_state.anthropic_client = anthropic.Anthropic(api_key=api_key)
+
+# Initialize logs state
+if "logs" not in st.session_state:
+    st.session_state.logs = []  # list of dict entries
+if "logs_history_path" not in st.session_state:
+    st.session_state.logs_history_path = os.getenv("LOGS_HISTORY_PATH", "logs_history.jsonl")
 
 
 def get_tool_definitions() -> List[Dict[str, Any]]:
@@ -330,6 +343,33 @@ def add_message_to_history(role: str, content: str, tool_results: Optional[List[
     st.session_state.messages.append(message)
 
 
+def log_event(level: str, message: str, logger: Optional[str] = None) -> None:
+    """Append a log entry to session buffer and persist to disk.
+
+    This is a simple helper until a proper logging.Handler is added.
+    """
+    try:
+        import time
+        entry = {
+            "timestamp_epoch": time.time(),
+            "level": level.upper(),
+            "message": message,
+            "logger": logger or "ui",
+        }
+        # Append to in-memory buffer with a soft cap
+        st.session_state.logs.append(entry)
+        if len(st.session_state.logs) > 2000:
+            st.session_state.logs = st.session_state.logs[-2000:]
+        # Persist to disk
+        try:
+            append_history(st.session_state.logs_history_path, entry)
+        except Exception:
+            pass
+    except Exception:
+        # Best-effort; never break the UI
+        pass
+
+
 def handle_user_query(user_input: str) -> None:
     """Unified handler for all user queries (example queries and new input)."""
     # Display user message immediately
@@ -337,7 +377,9 @@ def handle_user_query(user_input: str) -> None:
     
     # Get AI response (this will add user message to history internally)
     with st.spinner("Thinking..."):
+        log_event("INFO", f"User query received: {user_input[:80]}")
         response_text, tool_results = chat_with_agent(user_input)
+        log_event("INFO", f"Assistant responded ({len(tool_results)} tool results)")
     
     # Display assistant response and add both messages to history
     display_and_process_message("assistant", response_text, tool_results)
@@ -558,12 +600,43 @@ with col_logs:
         # Actions row
         c1, c2 = st.columns(2)
         with c1:
-            st.button("Clear", key="logs_clear", use_container_width=True)
+            if st.button("Clear", key="logs_clear", use_container_width=True):
+                st.session_state.logs = []
+                # also clear on-disk history
+                try:
+                    with open(st.session_state.logs_history_path, "w", encoding="utf-8") as f:
+                        f.truncate(0)
+                except Exception:
+                    pass
         with c2:
-            st.download_button("Download", data="", file_name="logs.txt", mime="text/plain", use_container_width=True)
+            filtered = filter_logs(st.session_state.logs, level=level, search=search)
+            text_blob = serialize_logs_text(filtered)
+            st.download_button("Download", data=text_blob, file_name="logs.txt", mime="text/plain", use_container_width=True)
 
-        # Placeholder for live/historical logs
-        st.caption("Live logs")
-        logs_container = st.container(border=True)
-        with logs_container:
-            st.code("""[INFO] Ready. Logs will appear here...""", language="text")
+        # Tabs: Live | History | Metrics
+        live_tab, history_tab, metrics_tab = st.tabs(["Live", "History", "Metrics"])
+
+        with live_tab:
+            st.caption("Live logs")
+            logs_container = st.container(border=True)
+            filtered_live = filter_logs(st.session_state.logs, level=level, search=search)
+            with logs_container:
+                if filtered_live:
+                    st.code(serialize_logs_text(filtered_live[-200:]), language="text")
+                else:
+                    st.code("[INFO] No logs yet.", language="text")
+
+        with history_tab:
+            st.caption("History (from disk)")
+            history = read_history(st.session_state.logs_history_path)
+            filtered_hist = filter_logs(history, level=level, search=search)
+            st.code(serialize_logs_text(filtered_hist[-500:]), language="text")
+
+        with metrics_tab:
+            metrics = compute_metrics(st.session_state.logs)
+            st.metric("Total", metrics.get("total", 0))
+            cols = st.columns(5)
+            levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+            for i, lvl in enumerate(levels):
+                cols[i].metric(lvl, metrics["counts"].get(lvl, 0))
+            st.metric("Msgs/min", f"{metrics.get('rate_per_minute', 0.0):.1f}")
