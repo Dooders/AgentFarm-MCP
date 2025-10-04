@@ -507,19 +507,12 @@ with st.sidebar:
 
     with tools_tab:
         st.subheader("💡 Example Queries")
-        with st.form(key="example_queries_form", clear_on_submit=False):
-            with st.expander("Examples", expanded=st.session_state.get("exp_examples", False)):
-                example_queries = get_example_queries()
-                selected_query = st.selectbox(
-                    "Choose an example",
-                    example_queries,
-                    index=None,
-                    placeholder="Select an example query",
-                    key="selected_example_query",
-                )
-            submitted = st.form_submit_button("Run Example", use_container_width=True)
-            if submitted and selected_query:
-                st.session_state.example_query = selected_query
+        # Display example queries inline as clickable buttons
+        example_queries = get_example_queries()
+        for i, q in enumerate(example_queries):
+            if st.button(q, key=f"example_query_btn_{i}", use_container_width=True):
+                st.session_state.example_query = q
+                st.rerun()
 
         with st.expander("Tool Categories", expanded=st.session_state.get("exp_tool_categories", False)):
             total = get_total_tool_count()
@@ -552,7 +545,6 @@ with st.sidebar:
                 st.rerun()
 
         with st.expander("Preferences", expanded=False):
-            st.checkbox("Expand 'Examples' by default", key="exp_examples")
             st.checkbox("Expand 'Tool Categories' by default", key="exp_tool_categories")
             st.toggle("Compact mode", key="compact_mode", help="Reduce paddings and spacing")
 
