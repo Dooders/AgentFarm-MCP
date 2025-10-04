@@ -15,6 +15,7 @@ from ui_helpers import (
     get_example_queries,
     get_tool_category_counts,
     get_total_tool_count,
+    get_log_levels,
 )
 import pandas as pd
 import plotly.graph_objects as go
@@ -62,6 +63,29 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# Optional compact mode CSS overrides
+if st.session_state.get("compact_mode", False):
+    st.markdown(
+        """
+        <style>
+        /* Reduce padding in main and sidebar containers */
+        div.block-container { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        section[data-testid="stSidebar"] .block-container { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+
+        /* Compact buttons */
+        .stButton>button, .stDownloadButton>button { padding: 0.25rem 0.6rem; min-height: 2rem; }
+
+        /* Compact inputs in sidebar */
+        section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] textarea { min-height: 2rem; }
+        section[data-testid="stSidebar"] [data-baseweb="select"] { min-height: 2rem; }
+
+        /* Reduce vertical gaps */
+        .stSelectbox, .stTextInput, .stCheckbox, .stExpander, .stRadio, .stMarkdown { margin-bottom: 0.25rem !important; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # Initialize session state
@@ -490,11 +514,18 @@ with st.sidebar:
             st.checkbox("Expand 'Tool Categories' by default", key="exp_tool_categories")
 
 
-# Main content
+# Header bar
+header_left, header_right = st.columns([0.8, 0.2])
+with header_left:
+    st.title("🤖 MCP Simulation Server - Chat Demo")
+with header_right:
+    st.write("")  # spacing
+    st.toggle("Show Logs", key="show_logs_panel", value=st.session_state.get("show_logs_panel", False))
+
+# Main content columns
 col_main, col_logs = st.columns([0.72, 0.28], gap="small")
 
 with col_main:
-    st.title("🤖 MCP Simulation Server - Chat Demo")
     st.markdown("Ask questions about your simulation data using natural language!")
 
     # Display chat messages
@@ -514,13 +545,15 @@ with col_main:
 with col_logs:
     # Right collapsible logs panel (phase 2 skeleton)
     st.markdown("### Logs")
-    show_logs = st.toggle("Show logs panel", key="show_logs_panel", value=False)
+    show_logs = st.session_state.get("show_logs_panel", False)
 
     if show_logs:
         # Filters
-        level = st.selectbox("Level", ["All", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], index=2, key="logs_level")
+        level = st.selectbox("Level", get_log_levels(), index=2, key="logs_level")
         search = st.text_input("Search", key="logs_search", placeholder="Filter messages...")
         auto_scroll = st.checkbox("Auto-scroll", value=True, key="logs_autoscroll")
+
+        st.toggle("Compact mode", key="compact_mode", help="Reduce paddings and spacing")
 
         # Actions row
         c1, c2 = st.columns(2)
