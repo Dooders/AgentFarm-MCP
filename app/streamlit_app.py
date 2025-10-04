@@ -316,23 +316,39 @@ def render_tool_results(tool_results: List[Dict[str, Any]]) -> None:
 
 
 def display_chat_message(message: Dict[str, Any]) -> None:
-    """Display a single chat message with optional tool results."""
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-        
-        # Display tool results if present
-        if "tool_results" in message:
-            render_tool_results(message["tool_results"])
+    """Display a single chat message aligned by role (assistant left, user right)."""
+    role = message["role"]
+    content = message["content"]
+    tool_results = message.get("tool_results")
+
+    if role == "assistant":
+        primary_col, secondary_col = st.columns([7, 3], gap="small")
+        target_col = primary_col
+    else:
+        primary_col, secondary_col = st.columns([3, 7], gap="small")
+        target_col = secondary_col
+
+    with target_col:
+        with st.chat_message(role):
+            st.markdown(content)
+            if tool_results:
+                render_tool_results(tool_results)
 
 
 def display_and_process_message(role: str, content: str, tool_results: Optional[List[Dict[str, Any]]] = None) -> None:
-    """Display a message in the chat interface and optionally add to history."""
-    with st.chat_message(role):
-        st.markdown(content)
-        
-        # Display tool results if present
-        if tool_results:
-            render_tool_results(tool_results)
+    """Display a message aligned by role and optionally render tool results."""
+    if role == "assistant":
+        primary_col, secondary_col = st.columns([7, 3], gap="small")
+        target_col = primary_col
+    else:
+        primary_col, secondary_col = st.columns([3, 7], gap="small")
+        target_col = secondary_col
+
+    with target_col:
+        with st.chat_message(role):
+            st.markdown(content)
+            if tool_results:
+                render_tool_results(tool_results)
 
 
 def add_message_to_history(role: str, content: str, tool_results: Optional[List[Dict[str, Any]]] = None) -> None:
@@ -507,19 +523,12 @@ with st.sidebar:
 
     with tools_tab:
         st.subheader("💡 Example Queries")
-        with st.form(key="example_queries_form", clear_on_submit=False):
-            with st.expander("Examples", expanded=st.session_state.get("exp_examples", False)):
-                example_queries = get_example_queries()
-                selected_query = st.selectbox(
-                    "Choose an example",
-                    example_queries,
-                    index=None,
-                    placeholder="Select an example query",
-                    key="selected_example_query",
-                )
-            submitted = st.form_submit_button("Run Example", use_container_width=True)
-            if submitted and selected_query:
-                st.session_state.example_query = selected_query
+        # Display example queries inline as clickable buttons
+        example_queries = get_example_queries()
+        for i, q in enumerate(example_queries):
+            if st.button(q, key=f"example_query_btn_{i}", use_container_width=True):
+                st.session_state.example_query = q
+                st.rerun()
 
         with st.expander("Tool Categories", expanded=st.session_state.get("exp_tool_categories", False)):
             total = get_total_tool_count()
@@ -552,7 +561,6 @@ with st.sidebar:
                 st.rerun()
 
         with st.expander("Preferences", expanded=False):
-            st.checkbox("Expand 'Examples' by default", key="exp_examples")
             st.checkbox("Expand 'Tool Categories' by default", key="exp_tool_categories")
             st.toggle("Compact mode", key="compact_mode", help="Reduce paddings and spacing")
 
@@ -577,7 +585,7 @@ else:
 with col_main:
     st.markdown("Ask questions about your simulation data using natural language!")
 
-    # Display chat messages
+    # Display chat messages with left/right alignment
     for message in st.session_state.messages:
         display_chat_message(message)
 
@@ -587,9 +595,11 @@ with col_main:
         del st.session_state.example_query
         handle_user_query(user_input)
 
-    # Chat input
-    if user_input := st.chat_input("Ask about your simulation data..."):
-        handle_user_query(user_input)
+    # Chat input aligned to the user side (right)
+    input_cols = st.columns([3, 7], gap="small")
+    with input_cols[1]:
+        if user_input := st.chat_input("Ask about your simulation data..."):
+            handle_user_query(user_input)
 
 if col_logs is not None:
     with col_logs:
