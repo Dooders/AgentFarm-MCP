@@ -563,10 +563,16 @@ with header_left:
     st.title("🤖 MCP Simulation Server - Chat Demo")
 with header_right:
     st.write("")  # spacing
-    st.toggle("Show Logs", key="show_logs_panel", value=st.session_state.get("show_logs_panel", False))
+    st.toggle("Show Logs", key="show_logs_panel")
 
-# Main content columns
-col_main, col_logs = st.columns([0.72, 0.28], gap="small")
+# Main content columns - conditional layout based on logs panel
+show_logs = st.session_state.get("show_logs_panel", False)
+
+if show_logs:
+    col_main, col_logs = st.columns([0.72, 0.28], gap="small")
+else:
+    col_main = st.container()
+    col_logs = None
 
 with col_main:
     st.markdown("Ask questions about your simulation data using natural language!")
@@ -585,57 +591,57 @@ with col_main:
     if user_input := st.chat_input("Ask about your simulation data..."):
         handle_user_query(user_input)
 
-with col_logs:
-    # Right collapsible logs panel (phase 2 skeleton)
-    st.markdown("### Logs")
-    show_logs = st.session_state.get("show_logs_panel", False)
+if col_logs is not None:
+    with col_logs:
+        # Right collapsible logs panel (phase 2 skeleton)
+        st.markdown("### Logs")
 
-    if show_logs:
-        # Filters
-        level = st.selectbox("Level", get_log_levels(), index=2, key="logs_level")
-        search = st.text_input("Search", key="logs_search", placeholder="Filter messages...")
-        auto_scroll = st.checkbox("Auto-scroll", value=True, key="logs_autoscroll")
+        if show_logs:
+            # Filters
+            level = st.selectbox("Level", get_log_levels(), index=2, key="logs_level")
+            search = st.text_input("Search", key="logs_search", placeholder="Filter messages...")
+            auto_scroll = st.checkbox("Auto-scroll", value=True, key="logs_autoscroll")
 
-        # Actions row
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("Clear", key="logs_clear", use_container_width=True):
-                st.session_state.logs = []
-                # also clear on-disk history
-                try:
-                    with open(st.session_state.logs_history_path, "w", encoding="utf-8") as f:
-                        f.truncate(0)
-                except Exception:
-                    pass
-        with c2:
-            filtered = filter_logs(st.session_state.logs, level=level, search=search)
-            text_blob = serialize_logs_text(filtered)
-            st.download_button("Download", data=text_blob, file_name="logs.txt", mime="text/plain", use_container_width=True)
+            # Actions row
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("Clear", key="logs_clear", use_container_width=True):
+                    st.session_state.logs = []
+                    # also clear on-disk history
+                    try:
+                        with open(st.session_state.logs_history_path, "w", encoding="utf-8") as f:
+                            f.truncate(0)
+                    except Exception:
+                        pass
+            with c2:
+                filtered = filter_logs(st.session_state.logs, level=level, search=search)
+                text_blob = serialize_logs_text(filtered)
+                st.download_button("Download", data=text_blob, file_name="logs.txt", mime="text/plain", use_container_width=True)
 
-        # Tabs: Live | History | Metrics
-        live_tab, history_tab, metrics_tab = st.tabs(["Live", "History", "Metrics"])
+            # Tabs: Live | History | Metrics
+            live_tab, history_tab, metrics_tab = st.tabs(["Live", "History", "Metrics"])
 
-        with live_tab:
-            st.caption("Live logs")
-            logs_container = st.container(border=True)
-            filtered_live = filter_logs(st.session_state.logs, level=level, search=search)
-            with logs_container:
-                if filtered_live:
-                    st.code(serialize_logs_text(filtered_live[-200:]), language="text")
-                else:
-                    st.code("[INFO] No logs yet.", language="text")
+            with live_tab:
+                st.caption("Live logs")
+                logs_container = st.container(border=True)
+                filtered_live = filter_logs(st.session_state.logs, level=level, search=search)
+                with logs_container:
+                    if filtered_live:
+                        st.code(serialize_logs_text(filtered_live[-200:]), language="text")
+                    else:
+                        st.code("[INFO] No logs yet.", language="text")
 
-        with history_tab:
-            st.caption("History (from disk)")
-            history = read_history(st.session_state.logs_history_path)
-            filtered_hist = filter_logs(history, level=level, search=search)
-            st.code(serialize_logs_text(filtered_hist[-500:]), language="text")
+            with history_tab:
+                st.caption("History (from disk)")
+                history = read_history(st.session_state.logs_history_path)
+                filtered_hist = filter_logs(history, level=level, search=search)
+                st.code(serialize_logs_text(filtered_hist[-500:]), language="text")
 
-        with metrics_tab:
-            metrics = compute_metrics(st.session_state.logs)
-            st.metric("Total", metrics.get("total", 0))
-            cols = st.columns(5)
-            levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-            for i, lvl in enumerate(levels):
-                cols[i].metric(lvl, metrics["counts"].get(lvl, 0))
-            st.metric("Msgs/min", f"{metrics.get('rate_per_minute', 0.0):.1f}")
+            with metrics_tab:
+                metrics = compute_metrics(st.session_state.logs)
+                st.metric("Total", metrics.get("total", 0))
+                cols = st.columns(5)
+                levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+                for i, lvl in enumerate(levels):
+                    cols[i].metric(lvl, metrics["counts"].get(lvl, 0))
+                st.metric("Msgs/min", f"{metrics.get('rate_per_minute', 0.0):.1f}")
