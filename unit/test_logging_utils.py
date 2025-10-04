@@ -1,6 +1,6 @@
 from time import time
 
-from logging_utils import (
+from app.logging_utils import (
     LogEntry,
     filter_logs,
     serialize_logs_text,

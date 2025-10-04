@@ -1,4 +1,4 @@
-import ui_helpers as ui
+from app import ui_helpers as ui
 
 
 def test_sidebar_tab_labels():
