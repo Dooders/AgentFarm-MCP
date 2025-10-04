@@ -554,6 +554,7 @@ with st.sidebar:
         with st.expander("Preferences", expanded=False):
             st.checkbox("Expand 'Examples' by default", key="exp_examples")
             st.checkbox("Expand 'Tool Categories' by default", key="exp_tool_categories")
+            st.toggle("Compact mode", key="compact_mode", help="Reduce paddings and spacing")
 
 
 # Header bar
@@ -594,8 +595,6 @@ with col_logs:
         level = st.selectbox("Level", get_log_levels(), index=2, key="logs_level")
         search = st.text_input("Search", key="logs_search", placeholder="Filter messages...")
         auto_scroll = st.checkbox("Auto-scroll", value=True, key="logs_autoscroll")
-
-        st.toggle("Compact mode", key="compact_mode", help="Reduce paddings and spacing")
 
         # Actions row
         c1, c2 = st.columns(2)
