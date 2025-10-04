@@ -10,6 +10,12 @@ import os
 from typing import Any, Dict, List, Optional
 
 import anthropic
+from ui_helpers import (
+    get_sidebar_tab_labels,
+    get_example_queries,
+    get_tool_category_counts,
+    get_total_tool_count,
+)
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -429,7 +435,7 @@ with st.sidebar:
     if "sidebar_active_tab" not in st.session_state:
         st.session_state.sidebar_active_tab = "Tools"
 
-    tabs = ["Tools", "Data", "Settings"]
+    tabs = get_sidebar_tab_labels()
     # Render tabs and keep track of active tab index by name
     tools_tab, data_tab, settings_tab = st.tabs(tabs)
 
@@ -437,14 +443,7 @@ with st.sidebar:
         st.subheader("💡 Example Queries")
         with st.form(key="example_queries_form", clear_on_submit=False):
             with st.expander("Examples", expanded=st.session_state.get("exp_examples", False)):
-                example_queries = [
-                    "List all available simulations",
-                    "What's the population growth rate in the latest simulation?",
-                    "Show me the top 5 agents that survived the longest",
-                    "Analyze population dynamics and show a chart",
-                    "What were the critical events in the simulation?",
-                    "Compare survival rates by generation",
-                ]
+                example_queries = get_example_queries()
                 selected_query = st.selectbox(
                     "Choose an example",
                     example_queries,
@@ -457,13 +456,10 @@ with st.sidebar:
                 st.session_state.example_query = selected_query
 
         with st.expander("Tool Categories", expanded=st.session_state.get("exp_tool_categories", False)):
-            st.markdown("**Available Tools:** 25")
-            st.markdown("- Metadata: 4")
-            st.markdown("- Query: 6")
-            st.markdown("- Analysis: 7")
-            st.markdown("- Comparison: 4")
-            st.markdown("- Advanced: 2")
-            st.markdown("- Health: 2")
+            total = get_total_tool_count()
+            st.markdown(f"**Available Tools:** {total}")
+            for name, count in get_tool_category_counts().items():
+                st.markdown(f"- {name}: {count}")
 
     with data_tab:
         st.subheader("Server & Data")
@@ -495,19 +491,46 @@ with st.sidebar:
 
 
 # Main content
-st.title("🤖 MCP Simulation Server - Chat Demo")
-st.markdown("Ask questions about your simulation data using natural language!")
+col_main, col_logs = st.columns([0.72, 0.28], gap="small")
 
-# Display chat messages
-for message in st.session_state.messages:
-    display_chat_message(message)
+with col_main:
+    st.title("🤖 MCP Simulation Server - Chat Demo")
+    st.markdown("Ask questions about your simulation data using natural language!")
 
-# Handle example query
-if hasattr(st.session_state, "example_query"):
-    user_input = st.session_state.example_query
-    del st.session_state.example_query
-    handle_user_query(user_input)
+    # Display chat messages
+    for message in st.session_state.messages:
+        display_chat_message(message)
 
-# Chat input
-if user_input := st.chat_input("Ask about your simulation data..."):
-    handle_user_query(user_input)
+    # Handle example query
+    if hasattr(st.session_state, "example_query"):
+        user_input = st.session_state.example_query
+        del st.session_state.example_query
+        handle_user_query(user_input)
+
+    # Chat input
+    if user_input := st.chat_input("Ask about your simulation data..."):
+        handle_user_query(user_input)
+
+with col_logs:
+    # Right collapsible logs panel (phase 2 skeleton)
+    st.markdown("### Logs")
+    show_logs = st.toggle("Show logs panel", key="show_logs_panel", value=False)
+
+    if show_logs:
+        # Filters
+        level = st.selectbox("Level", ["All", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], index=2, key="logs_level")
+        search = st.text_input("Search", key="logs_search", placeholder="Filter messages...")
+        auto_scroll = st.checkbox("Auto-scroll", value=True, key="logs_autoscroll")
+
+        # Actions row
+        c1, c2 = st.columns(2)
+        with c1:
+            st.button("Clear", key="logs_clear", use_container_width=True)
+        with c2:
+            st.download_button("Download", data="", file_name="logs.txt", mime="text/plain", use_container_width=True)
+
+        # Placeholder for live/historical logs
+        st.caption("Live logs")
+        logs_container = st.container(border=True)
+        with logs_container:
+            st.code("""[INFO] Ready. Logs will appear here...""", language="text")
